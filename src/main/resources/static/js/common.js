@@ -658,9 +658,42 @@ window.initCustomSelects = function (rootContainer) {
     });
 };
 
+window.closeAccountDropdown = function () {
+    const menu = document.getElementById('account-dropdown-menu');
+    const btn = document.getElementById('account-dropdown-btn');
+    const chevron = document.getElementById('account-dropdown-chevron');
+    if (menu) menu.classList.add('hidden');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+    if (chevron) chevron.classList.remove('rotate-180');
+};
+
+window.toggleAccountDropdown = function (e) {
+    if (e) e.stopPropagation();
+    const menu = document.getElementById('account-dropdown-menu');
+    const btn = document.getElementById('account-dropdown-btn');
+    const chevron = document.getElementById('account-dropdown-chevron');
+    if (!menu) return;
+    const willOpen = menu.classList.contains('hidden');
+    if (willOpen) {
+        menu.classList.remove('hidden');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+        if (chevron) chevron.classList.add('rotate-180');
+    } else {
+        window.closeAccountDropdown();
+    }
+};
+
+document.addEventListener('click', (e) => {
+    const wrap = document.getElementById('account-dropdown-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+        window.closeAccountDropdown();
+    }
+});
+
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         window.toggleMobileNavDrawer(true);
+        window.closeAccountDropdown();
     }
 });
 
