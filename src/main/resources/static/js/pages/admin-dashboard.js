@@ -430,9 +430,13 @@
         setTimeout(() => el.classList.remove('bg-emerald-500/10'), 1400);
     }
 
-    // ==================== 4. CHUYỂN TAB (4 TAB) ====================
+    // ==================== 4. CHUYỂN TAB (5 TAB) ====================
+    let adminWithdrawalsLoaded = false;
+    let adminWithdrawalsCache = new Map();
+    let activeWithdrawalFilter = 'ALL';
+
     window.switchAdminTab = function (tab) {
-        const tabs = ['sets', 'rarities', 'cards', 'users'];
+        const tabs = ['sets', 'rarities', 'cards', 'users', 'withdrawals'];
         if (!tabs.includes(tab)) tab = 'sets';
         tabs.forEach(t => {
             const panel = document.getElementById(`admin-panel-${t}`);
@@ -440,14 +444,15 @@
             const isActive = t === tab;
             panel?.classList.toggle('hidden', !isActive);
             if (btn) {
-                btn.className = isActive
+                const extraFlex = t === 'withdrawals' ? ' inline-flex items-center justify-center gap-1.5' : '';
+                btn.className = (isActive
                     ? 'pk-btn-primary rounded-xl px-3.5 py-2.5 text-xs font-extrabold cursor-pointer transition text-center'
-                    : 'rounded-xl px-3.5 py-2.5 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition text-center';
+                    : 'rounded-xl px-3.5 py-2.5 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition text-center') + extraFlex;
             }
         });
         const setToolbar = document.getElementById('admin-set-toolbar');
         if (setToolbar) {
-            setToolbar.classList.toggle('hidden', tab === 'users');
+            setToolbar.classList.toggle('hidden', tab === 'users' || tab === 'withdrawals');
         }
         document.documentElement.setAttribute('data-admin-tab', tab);
         try {
@@ -457,6 +462,145 @@
             adminUsersLoaded = true;
             window.loadAdminUsers(0);
         }
+        if (tab === 'withdrawals') {
+            adminWithdrawalsLoaded = true;
+            window.loadAdminWithdrawals(activeWithdrawalFilter);
+        }
+    };
+
+    function updatePendingWithdrawalBadge(count) {
+        const badge = document.getElementById('admin-withdrawals-pending-badge');
+        if (!badge) return;
+        const n = Number(count || 0);
+        badge.textContent = String(n);
+        badge.classList.toggle('hidden', n <= 0);
+    }
+
+    window.loadAdminWithdrawals = async function (statusFilter) {
+        if (statusFilter) activeWithdrawalFilter = statusFilter;
+        document.querySelectorAll('.wd-filter-btn').forEach((btn) => {
+            const isActive = btn.id === `wd-filter-${activeWithdrawalFilter}`;
+            btn.className = isActive
+                ? 'wd-filter-btn pk-btn-primary rounded-lg px-2.5 py-1 text-xs font-extrabold cursor-pointer transition'
+                : 'wd-filter-btn rounded-lg px-2.5 py-1 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition';
+        });
+
+        const tbody = document.getElementById('admin-withdrawals-tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-xs pk-text-secondary">Đang tải danh sách yêu cầu rút tiền...</td></tr>';
+        }
+
+        try {
+            const res = await fetch(`/api/v1/admin/withdrawals?status=${encodeURIComponent(activeWithdrawalFilter)}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            updatePendingWithdrawalBadge(data.pendingCount);
+            const items = Array.isArray(data.items) ? data.items : [];
+            adminWithdrawalsCache.clear();
+            items.forEach((it) => adminWithdrawalsCache.set(Number(it.id), it));
+
+            if (!tbody) return;
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-xs pk-text-secondary">Chưa có yêu cầu rút tiền nào phù hợp bộ lọc.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = items.map((w) => {
+                const xuStr = Math.round(Number(w.xuAmount || 0)).toLocaleString('vi-VN');
+                const vndStr = Math.round(Number(w.vndAmount || 0)).toLocaleString('vi-VN');
+                const timeStr = w.createdAt ? String(w.createdAt).replace('T', ' ').substring(0, 16) : '';
+                const badge = w.status === 'APPROVED'
+                    ? '<span class="inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Đã duyệt</span>'
+                    : (w.status === 'REJECTED'
+                        ? '<span class="inline-flex items-center rounded-full bg-rose-500/15 px-2.5 py-0.5 text-[11px] font-bold text-rose-600 dark:text-rose-400">Đã từ chối</span>'
+                        : '<span class="inline-flex items-center rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">Chờ duyệt</span>');
+
+                const actionHtml = w.status === 'PENDING'
+                    ? `<button type="button" onclick="window.openWithdrawalPayoutModal(${w.id})"
+                               class="pk-btn-primary rounded-xl px-3 py-1.5 text-xs font-extrabold cursor-pointer whitespace-nowrap">
+                           Quét QR &amp; Duyệt
+                       </button>`
+                    : `<span class="text-[11px] pk-text-secondary">${esc(w.adminNote || 'Đã xử lý')}</span>`;
+
+                return `
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="font-mono text-xs font-extrabold pk-text-primary">${esc(w.withdrawalCode)}</div>
+                            <div class="pk-num text-[11px] pk-text-secondary">${esc(timeStr)}</div>
+                        </td>
+                        <td class="px-4 py-3 font-bold pk-text-primary whitespace-nowrap">${esc(w.username)}</td>
+                        <td class="px-4 py-3">
+                            <div class="font-bold pk-text-primary">${esc(w.bankCode)} • <span class="pk-num">${esc(w.accountNumber)}</span></div>
+                            <div class="text-[11px] pk-text-secondary uppercase">${esc(w.accountName)}</div>
+                        </td>
+                        <td class="px-4 py-3 text-right pk-num whitespace-nowrap">
+                            <div class="font-extrabold text-amber-600 dark:text-amber-400">${xuStr} Xu</div>
+                            <div class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">${vndStr} ₫</div>
+                        </td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">${badge}</td>
+                        <td class="px-4 py-3 text-center">${actionHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (err) {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-xs text-rose-500">Không thể tải danh sách rút tiền.</td></tr>';
+        }
+    };
+
+    window.openWithdrawalPayoutModal = function (id) {
+        const w = adminWithdrawalsCache.get(Number(id));
+        if (!w) return;
+        document.getElementById('payout-withdrawal-id').value = String(w.id);
+        document.getElementById('payout-modal-title').textContent = `Chi trả đơn ${w.withdrawalCode}`;
+        document.getElementById('payout-qr-img').src = w.vietQrUrl || '';
+        document.getElementById('payout-username').textContent = w.username || '';
+        document.getElementById('payout-bank').textContent = w.bankCode || '';
+        document.getElementById('payout-account-number').textContent = w.accountNumber || '';
+        document.getElementById('payout-account-name').textContent = w.accountName || '';
+        document.getElementById('payout-vnd-amount').textContent = `${Math.round(Number(w.vndAmount || 0)).toLocaleString('vi-VN')} ₫`;
+        document.getElementById('payout-code').textContent = w.withdrawalCode || '';
+        document.getElementById('payout-admin-note').value = '';
+        document.getElementById('modal-admin-withdrawal-payout')?.classList.remove('hidden');
+    };
+
+    async function processActiveWithdrawal(action) {
+        const id = document.getElementById('payout-withdrawal-id')?.value;
+        if (!id) return;
+        const note = (document.getElementById('payout-admin-note')?.value || '').trim();
+        const approveBtn = document.getElementById('btn-payout-approve');
+        const rejectBtn = document.getElementById('btn-payout-reject');
+        if (approveBtn) approveBtn.disabled = true;
+        if (rejectBtn) rejectBtn.disabled = true;
+
+        try {
+            const res = await fetch(`/api/v1/admin/withdrawals/${encodeURIComponent(id)}/${action}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ note })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                window.showToast('error', 'Thao tác thất bại', data.message || 'Không thể xử lý đơn rút tiền.');
+                return;
+            }
+            window.closeModal('modal-admin-withdrawal-payout');
+            window.showToast('success', action === 'approve' ? 'Đã duyệt chuyển tiền!' : 'Đã từ chối & hoàn Xu!', data.message);
+            updatePendingWithdrawalBadge(data.pendingCount);
+            await window.loadAdminWithdrawals(activeWithdrawalFilter);
+        } catch (err) {
+            window.showToast('error', 'Lỗi kết nối', err.message || 'Không thể kết nối máy chủ.');
+        } finally {
+            if (approveBtn) approveBtn.disabled = false;
+            if (rejectBtn) rejectBtn.disabled = false;
+        }
+    }
+
+    window.approveActiveWithdrawal = function () {
+        processActiveWithdrawal('approve');
+    };
+
+    window.rejectActiveWithdrawal = function () {
+        processActiveWithdrawal('reject');
     };
 
     // ==================== 5. DOM BUILDERS CHO TAB 1, 2, 3, 4 ====================
@@ -1786,6 +1930,12 @@
             document.getElementById('adjust-wallet-reason').value = '';
             window.showToast('success', 'Điều chỉnh ví thành công', data.message);
         });
+
+        // Tải badge số đơn rút tiền đang chờ duyệt
+        fetch('/api/v1/admin/withdrawals?status=PENDING')
+            .then((r) => (r.ok ? r.json() : null))
+            .then((d) => { if (d) updatePendingWithdrawalBadge(d.pendingCount); })
+            .catch(() => {});
     }
 
     if (document.readyState === 'loading') {

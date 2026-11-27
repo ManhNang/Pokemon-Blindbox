@@ -40,8 +40,8 @@
             </div>
         </div>
 
-        <!-- 4 Tab phân khu tinh gọn -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-2xl pk-surface-muted p-1.5">
+        <!-- 5 Tab phân khu tinh gọn -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 rounded-2xl pk-surface-muted p-1.5">
             <button type="button" id="admin-tab-btn-sets" onclick="window.switchAdminTab('sets')"
                     class="pk-btn-primary rounded-xl px-3.5 py-2.5 text-xs font-extrabold cursor-pointer transition text-center">
                 1. Bộ Thẻ
@@ -57,6 +57,12 @@
             <button type="button" id="admin-tab-btn-users" onclick="window.switchAdminTab('users')"
                     class="rounded-xl px-3.5 py-2.5 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition text-center">
                 4. Người Dùng
+            </button>
+            <button type="button" id="admin-tab-btn-withdrawals" onclick="window.switchAdminTab('withdrawals')"
+                    class="rounded-xl px-3.5 py-2.5 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition text-center inline-flex items-center justify-center gap-1.5">
+                <span>5. Rút Tiền</span>
+                <span id="admin-withdrawals-pending-badge"
+                      class="hidden pk-num rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-extrabold text-white leading-none">0</span>
             </button>
         </div>
     </section>
@@ -618,6 +624,50 @@
         </div>
     </section>
 
+    <!-- ==================== TAB 5: DUYỆT YÊU CẦU RÚT TIỀN (VIETQR PAYOUT) ==================== -->
+    <section id="admin-panel-withdrawals" class="hidden pk-surface rounded-3xl p-5 sm:p-6 space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-base font-extrabold pk-text-primary">Duyệt Yêu Cầu Rút Tiền (VietQR Payout)</h2>
+                <p class="text-xs pk-text-secondary mt-0.5">Bấm "Quét QR &amp; Duyệt" để mở mã VietQR tự động sinh sẵn của người chơi, chuyển tiền rồi xác nhận.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="inline-flex items-center gap-1 rounded-xl pk-surface-muted p-1">
+                    <button type="button" id="wd-filter-ALL" onclick="window.loadAdminWithdrawals('ALL')"
+                            class="wd-filter-btn pk-btn-primary rounded-lg px-2.5 py-1 text-xs font-extrabold cursor-pointer transition">Tất cả</button>
+                    <button type="button" id="wd-filter-PENDING" onclick="window.loadAdminWithdrawals('PENDING')"
+                            class="wd-filter-btn rounded-lg px-2.5 py-1 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition">Chờ duyệt</button>
+                    <button type="button" id="wd-filter-APPROVED" onclick="window.loadAdminWithdrawals('APPROVED')"
+                            class="wd-filter-btn rounded-lg px-2.5 py-1 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition">Đã duyệt</button>
+                    <button type="button" id="wd-filter-REJECTED" onclick="window.loadAdminWithdrawals('REJECTED')"
+                            class="wd-filter-btn rounded-lg px-2.5 py-1 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition">Từ chối</button>
+                </div>
+                <button type="button" onclick="window.loadAdminWithdrawals()"
+                        class="pk-surface-elevated rounded-xl px-3 py-1.5 text-xs font-bold pk-text-primary hover:border-amber-500/50 border border-slate-300/60 dark:border-white/15 cursor-pointer transition">
+                    ↻ Làm mới
+                </button>
+            </div>
+        </div>
+
+        <div class="w-full max-w-full overflow-x-auto rounded-2xl pk-surface-muted">
+            <table class="w-full text-left text-xs sm:text-sm">
+                <thead class="border-b border-slate-200 dark:border-slate-800 pk-text-secondary text-[11px] uppercase">
+                <tr>
+                    <th class="px-4 py-3">Mã / Thời gian</th>
+                    <th class="px-4 py-3">Người chơi</th>
+                    <th class="px-4 py-3">Tài khoản nhận</th>
+                    <th class="px-4 py-3 text-right">Số Xu / VNĐ</th>
+                    <th class="px-4 py-3 text-center">Trạng thái</th>
+                    <th class="px-4 py-3 text-center">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody id="admin-withdrawals-tbody" class="divide-y divide-slate-200/70 dark:divide-slate-800/70">
+                    <tr><td colspan="6" class="px-4 py-8 text-center text-xs pk-text-secondary">Đang tải danh sách yêu cầu rút tiền...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
 </main>
 
 <!-- ==================== MODAL THÊM MỚI THẺ BÀI ==================== -->
@@ -1116,7 +1166,74 @@
     </div>
 </div>
 
+<!-- ==================== MODAL CHI TRẢ VIETQR CHO ADMIN (DUYỆT / TỪ CHỐI RÚT TIỀN) ==================== -->
+<div id="modal-admin-withdrawal-payout"
+     onclick="if (event.target === this) window.closeModal('modal-admin-withdrawal-payout')"
+     class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4">
+    <div class="pk-surface w-full max-w-md rounded-3xl p-5 sm:p-6 border-2 border-amber-500/40 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+        <div class="flex items-start justify-between gap-2 border-b border-slate-200/70 dark:border-slate-800 pb-3">
+            <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">Chi Trả VietQR • Admin</span>
+                <h3 id="payout-modal-title" class="text-base font-extrabold pk-text-primary">Duyệt đơn rút tiền</h3>
+            </div>
+            <button type="button" onclick="window.closeModal('modal-admin-withdrawal-payout')"
+                    class="flex h-8 w-8 items-center justify-center rounded-full pk-surface-muted pk-text-secondary hover:pk-text-primary font-bold cursor-pointer">✕</button>
+        </div>
+
+        <input type="hidden" id="payout-withdrawal-id"/>
+
+        <div class="mx-auto w-56 rounded-2xl bg-white p-2.5 shadow-lg border border-slate-200 flex items-center justify-center">
+            <img id="payout-qr-img" src="" alt="Mã VietQR chuyển tiền cho người chơi" class="w-full h-auto rounded-xl object-contain"/>
+        </div>
+
+        <div class="pk-surface-elevated rounded-2xl p-3.5 space-y-2 text-xs">
+            <div class="flex items-center justify-between gap-2">
+                <span class="pk-text-secondary">Người chơi:</span>
+                <strong id="payout-username" class="pk-text-primary">---</strong>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <span class="pk-text-secondary">Ngân hàng:</span>
+                <strong id="payout-bank" class="pk-text-primary">---</strong>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <span class="pk-text-secondary">Số tài khoản:</span>
+                <strong id="payout-account-number" class="pk-num pk-text-primary">---</strong>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <span class="pk-text-secondary">Chủ tài khoản:</span>
+                <strong id="payout-account-name" class="pk-text-primary uppercase">---</strong>
+            </div>
+            <div class="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-200/70 dark:border-slate-700/70">
+                <span class="pk-text-secondary">Số tiền cần chuyển:</span>
+                <strong id="payout-vnd-amount" class="pk-num text-sm text-emerald-600 dark:text-emerald-400">0 ₫</strong>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <span class="pk-text-secondary">Nội dung CK:</span>
+                <strong id="payout-code" class="font-mono text-amber-600 dark:text-amber-400">RUT...</strong>
+            </div>
+        </div>
+
+        <div>
+            <label for="payout-admin-note" class="block text-[11px] font-semibold pk-text-secondary mb-1">Ghi chú duyệt / Lý do từ chối (tùy chọn)</label>
+            <input type="text" id="payout-admin-note" maxlength="255"
+                   placeholder="VD: Đã chuyển VietQR / Sai tên chủ tài khoản..."
+                   class="pk-input h-10 w-full rounded-xl px-3 text-xs"/>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+            <button type="button" id="btn-payout-reject" onclick="window.rejectActiveWithdrawal()"
+                    class="rounded-xl bg-rose-500/12 hover:bg-rose-600 border border-rose-500/40 text-rose-600 dark:text-rose-400 hover:text-white py-2.5 px-3 text-xs font-extrabold cursor-pointer transition">
+                ✕ Từ chối &amp; Hoàn Xu
+            </button>
+            <button type="button" id="btn-payout-approve" onclick="window.approveActiveWithdrawal()"
+                    class="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-3 text-xs font-extrabold cursor-pointer shadow-sm transition">
+                ✓ Đã chuyển tiền
+            </button>
+        </div>
+    </div>
+</div>
+
 <div th:replace="~{fragments/header :: commonScripts}"></div>
-<script defer th:src="@{/js/pages/admin-dashboard.js(v='20261122a')}"></script>
+<script defer th:src="@{/js/pages/admin-dashboard.js(v='20261127e')}"></script>
 </body>
 </html>

@@ -81,147 +81,38 @@
               </div>
             </div>
           </div>
-
-          <!-- Khung mã QR VietQR (Chuyển khoản ngân hàng 24/7 tự động cộng Xu qua SePay) -->
-          <div
-            id="generated-vietqr-box"
-            class="hidden pk-surface rounded-3xl p-5 border-2 border-emerald-500/45 space-y-4"
-          >
-            <div class="flex items-center justify-between gap-2">
-              <div>
-                <div
-                  class="text-xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400"
-                >
-                  Quét mã VietQR • Tự động 24/7
-                </div>
-                <div
-                  id="vietqr-status-text"
-                  class="mt-0.5 text-[11px] font-semibold pk-text-secondary flex items-center gap-1.5"
-                >
-                  <span
-                    class="inline-block h-2 w-2 rounded-full bg-amber-400 animate-pulse"
-                  ></span>
-                  <span
-                    >Đang chờ chuyển khoản... tự động cộng Xu sau 1–3 giây</span
-                  >
-                </div>
-              </div>
-              <button
-                type="button"
-                onclick="window.closeVietQrBox()"
-                class="pk-text-secondary hover:pk-text-primary font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div
-              id="vietqr-not-configured-alert"
-              class="hidden rounded-2xl bg-amber-500/12 border border-amber-500/40 p-3 text-xs text-amber-700 dark:text-amber-300 leading-relaxed"
-            >
-              <strong>Chưa cấu hình số tài khoản nhận tiền!</strong> Hãy điền
-              <code>SEPAY_BANK_CODE</code>, <code>SEPAY_ACCOUNT_NUMBER</code>,
-              <code>SEPAY_ACCOUNT_NAME</code> và
-              <code>SEPAY_WEBHOOK_API_KEY</code> trong biến môi trường hoặc
-              <code>application.yml</code>.
-            </div>
-
-            <div
-              id="vietqr-image-wrap"
-              class="mx-auto w-52 rounded-2xl bg-white p-2.5 shadow-lg border border-slate-200 flex items-center justify-center"
-            >
-              <img
-                id="vietqr-img"
-                src=""
-                alt="Mã VietQR nạp Xu"
-                class="w-full h-auto rounded-xl object-contain"
-              />
-            </div>
-
-            <div
-              class="pk-surface-elevated rounded-2xl p-3.5 space-y-2 text-xs"
-            >
-              <div class="flex items-center justify-between gap-2">
-                <span class="pk-text-secondary">Ngân hàng:</span>
-                <strong id="vietqr-bank-code" class="pk-text-primary"
-                  >MB</strong
-                >
-              </div>
-              <div class="flex items-center justify-between gap-2">
-                <span class="pk-text-secondary">Số tài khoản:</span>
-                <div class="flex items-center gap-1.5">
-                  <strong
-                    id="vietqr-account-number"
-                    class="pk-num pk-text-primary"
-                    >---</strong
-                  >
-                  <button
-                    type="button"
-                    onclick="
-                      window.copyVietQrField(
-                        'vietqr-account-number',
-                        'Số tài khoản',
-                      )
-                    "
-                    class="rounded-md pk-surface-muted px-1.5 py-0.5 text-[10px] font-bold pk-text-primary hover:opacity-80 cursor-pointer"
-                  >
-                    Sao chép
-                  </button>
-                </div>
-              </div>
-              <div class="flex items-center justify-between gap-2">
-                <span class="pk-text-secondary">Chủ tài khoản:</span>
-                <strong
-                  id="vietqr-account-name"
-                  class="pk-text-primary uppercase"
-                  >---</strong
-                >
-              </div>
-              <div class="flex items-center justify-between gap-2">
-                <span class="pk-text-secondary">Số tiền:</span>
-                <strong
-                  id="vietqr-amount-display"
-                  class="pk-num text-amber-600 dark:text-amber-400"
-                  >200.000 ₫ (+2.000 Xu)</strong
-                >
-              </div>
-              <div
-                class="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-200/70 dark:border-slate-700/70"
-              >
-                <span class="pk-text-secondary">Nội dung CK:</span>
-                <div class="flex items-center gap-1.5">
-                  <strong
-                    id="vietqr-transfer-code"
-                    class="font-mono text-emerald-600 dark:text-emerald-400"
-                    >PKM...</strong
-                  >
-                  <button
-                    type="button"
-                    onclick="
-                      window.copyVietQrField(
-                        'vietqr-transfer-code',
-                        'Nội dung chuyển khoản',
-                      )
-                    "
-                    class="rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 px-1.5 py-0.5 text-[10px] font-extrabold hover:bg-emerald-500/25 cursor-pointer"
-                  >
-                    Sao chép
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
         </section>
 
-        <!-- Cột phải (7/12): Form chọn mệnh giá nạp Xu qua Chuyển khoản VietQR 24/7 -->
+        <!-- Cột phải (7/12): Chuyển đổi nhanh Nạp Xu VietQR (24/7) & Rút Xu về Ngân hàng -->
         <section
           class="lg:col-span-7 pk-surface rounded-3xl p-6 sm:p-7 space-y-5"
         >
-          <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2.5">
+            <div class="inline-flex items-center gap-1 rounded-2xl pk-surface-muted p-1">
+              <button
+                type="button"
+                id="wallet-mode-btn-deposit"
+                onclick="window.switchWalletActionTab('deposit')"
+                class="pk-btn-primary rounded-xl px-3.5 py-2 text-xs font-extrabold cursor-pointer transition whitespace-nowrap"
+              >
+                Nạp Xu VietQR
+              </button>
+              <button
+                type="button"
+                id="wallet-mode-btn-withdraw"
+                onclick="window.switchWalletActionTab('withdraw')"
+                class="rounded-xl px-3.5 py-2 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition whitespace-nowrap"
+              >
+                Rút Xu Ngân hàng
+              </button>
+            </div>
+
             <div class="flex items-center gap-2">
-              <h2 class="text-lg font-extrabold pk-text-primary">
-                Nạp Xu Chuyển Khoản VietQR (24/7)
-              </h2>
+              <span
+                class="inline-flex items-center rounded-full bg-amber-500/15 px-3 py-1 text-xs font-extrabold text-amber-600 dark:text-amber-400 pk-num"
+              >
+                1.000 ₫ = 100 Xu
+              </span>
               <button
                 type="button"
                 onclick="
@@ -229,20 +120,16 @@
                     .getElementById('modal-wallet-info')
                     .classList.remove('hidden')
                 "
-                title="Quy định quy đổi VNĐ → Xu"
-                aria-label="Quy định quy đổi VNĐ sang Xu"
-                class="inline-flex h-6 w-6 items-center justify-center rounded-full pk-surface-elevated text-xs font-extrabold pk-text-secondary hover:pk-text-primary cursor-pointer transition"
+                title="Quy định quy đổi VNĐ ↔ Xu"
+                aria-label="Quy định quy đổi VNĐ và Xu"
+                class="inline-flex h-7 w-7 items-center justify-center rounded-full pk-surface-elevated text-xs font-extrabold pk-text-secondary hover:pk-text-primary cursor-pointer transition"
               >
                 ⓘ
               </button>
             </div>
-            <span
-              class="inline-flex items-center rounded-full bg-amber-500/15 px-3 py-1 text-xs font-extrabold text-amber-600 dark:text-amber-400 pk-num"
-            >
-              1.000 ₫ = 100 Xu
-            </span>
           </div>
 
+          <div id="wallet-deposit-panel">
           <form id="vnpay-deposit-form" class="space-y-5">
             <input
               type="hidden"
@@ -381,8 +268,92 @@
               </div>
             </div>
           </form>
+          </div>
+
+          <!-- Panel Rút Xu về Tài khoản Ngân hàng (Admin duyệt & chuyển VietQR) -->
+          <div id="wallet-withdraw-panel" class="hidden">
+            <form id="wallet-withdraw-form" novalidate onsubmit="window.submitWithdrawalRequest(event)" class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="withdraw-bank-code" class="block text-xs font-semibold pk-text-secondary mb-1.5">Ngân hàng nhận *</label>
+                  <select id="withdraw-bank-code" required class="pk-input h-10 w-full rounded-xl px-3 text-xs font-bold cursor-pointer">
+                    <option value="MB">MB Bank (Quân Đội)</option>
+                    <option value="VCB">Vietcombank (VCB)</option>
+                    <option value="TCB">Techcombank (TCB)</option>
+                    <option value="TPB">TPBank (TPB)</option>
+                    <option value="BIDV">BIDV</option>
+                    <option value="ICB">VietinBank (ICB)</option>
+                    <option value="ACB">ACB</option>
+                    <option value="VPB">VPBank</option>
+                    <option value="STB">Sacombank</option>
+                    <option value="VIB">VIB</option>
+                    <option value="MSB">MSB</option>
+                    <option value="OCB">OCB</option>
+                    <option value="SHB">SHB</option>
+                    <option value="HDB">HDBank</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="withdraw-account-number" class="block text-xs font-semibold pk-text-secondary mb-1.5">Số tài khoản *</label>
+                  <input type="text" id="withdraw-account-number" required minlength="6" maxlength="30"
+                         placeholder="VD: 0987654321"
+                         class="pk-input pk-num h-10 w-full rounded-xl px-3.5 text-sm font-bold"/>
+                </div>
+              </div>
+
+              <div>
+                <label for="withdraw-account-name" class="block text-xs font-semibold pk-text-secondary mb-1.5">Tên chủ tài khoản (viết hoa, không dấu) *</label>
+                <input type="text" id="withdraw-account-name" required minlength="2" maxlength="120"
+                       placeholder="VD: NGUYEN VAN A"
+                       class="pk-input h-10 w-full rounded-xl px-3.5 text-sm font-bold uppercase"/>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between mb-1.5 gap-2 flex-wrap">
+                  <label for="withdraw-xu-amount" class="block text-xs font-semibold pk-text-secondary">Số Xu muốn rút (tối thiểu 1.000 Xu • phí 10%) *</label>
+                  <span id="withdraw-vnd-preview" class="pk-num text-xs font-extrabold text-emerald-600 dark:text-emerald-400">Thực nhận (-10% phí): 9.000 ₫</span>
+                </div>
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div class="relative flex-1">
+                    <input type="number" id="withdraw-xu-amount" min="1000" max="10000000" step="100" value="1000" required
+                           oninput="window.updateWithdrawVndPreview()"
+                           class="pk-input pk-num h-11 w-full rounded-xl pl-4 pr-11 text-base font-extrabold"/>
+                    <span class="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-extrabold pk-text-secondary">Xu</span>
+                  </div>
+                  <button type="submit" id="btn-submit-withdrawal"
+                          class="pk-btn-primary h-11 shrink-0 whitespace-nowrap rounded-xl px-5 text-xs sm:text-sm font-extrabold cursor-pointer inline-flex items-center justify-center">
+                    Gửi Yêu Cầu Rút Tiền
+                  </button>
+                </div>
+                <p class="mt-2 text-[11px] pk-text-secondary">
+                  Phí rút <strong>10%</strong> (VD: 1.000 Xu → thực nhận 9.000 ₫). Xu sẽ được tạm giữ ngay; nếu yêu cầu bị từ chối, 100% số Xu sẽ được tự động hoàn lại vào Ví.
+                </p>
+              </div>
+            </form>
+          </div>
         </section>
       </div>
+
+      <!-- ==================== DANH SÁCH YÊU CẦU RÚT TIỀN CỦA TÔI ==================== -->
+      <section id="my-withdrawals-section" class="hidden pk-surface rounded-3xl p-5 sm:p-6 space-y-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-base font-extrabold pk-text-primary">Yêu Cầu Rút Tiền Của Tôi</h2>
+          <span id="my-withdrawals-count" class="pk-num text-xs font-semibold pk-text-secondary">0 yêu cầu</span>
+        </div>
+        <div class="overflow-x-auto rounded-2xl pk-surface-muted">
+          <table class="w-full text-left text-xs">
+            <thead class="border-b border-slate-200 dark:border-slate-800 pk-text-secondary uppercase text-[10.5px]">
+              <tr>
+                <th class="px-4 py-2.5">Mã rút</th>
+                <th class="px-4 py-2.5">Tài khoản nhận</th>
+                <th class="px-4 py-2.5 text-right">Số Xu / Thực nhận</th>
+                <th class="px-4 py-2.5 text-right">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="my-withdrawals-tbody" class="divide-y divide-slate-200/70 dark:divide-slate-800/70"></tbody>
+          </table>
+        </div>
+      </section>
 
       <!-- ==================== BẢNG LỊCH SỬ BIẾN ĐỘNG SỐ DƯ (3 CỘT TINH GỌN + BỘ LỌC NHANH + PHÂN TRANG 10 DÒNG) ==================== -->
       <section class="pk-surface rounded-3xl p-5 sm:p-6 space-y-4">
@@ -467,7 +438,9 @@
                                            (typeName == 'SANCTUARY_HARVEST' ? 'Thu hoạch Đảo Pokémon' :
                                            (typeName == 'SANCTUARY_RANDOM_DROP' ? 'Sự kiện Đảo Pokémon' :
                                            (typeName == 'EXPEDITION_REWARD' ? 'Thưởng Thám hiểm' :
-                                           (typeName == 'DAILY_QUEST_REWARD' ? 'Thưởng Nhiệm vụ ngày' : typeName))))))))))))))},
+                                           (typeName == 'DAILY_QUEST_REWARD' ? 'Thưởng Nhiệm vụ ngày' :
+                                           (typeName == 'WITHDRAWAL_REQUEST' ? 'Yêu cầu rút Xu về ngân hàng' :
+                                           (typeName == 'WITHDRAWAL_REFUND' ? 'Hoàn Xu yêu cầu rút tiền' : typeName))))))))))))))))},
                              isCredit=${typeName == 'DEPOSIT_VIETQR'
                                         or typeName == 'DEPOSIT_VNPAY'
                                         or typeName == 'AUCTION_BID_REFUND'
@@ -477,6 +450,7 @@
                                         or typeName == 'SANCTUARY_RANDOM_DROP'
                                         or typeName == 'EXPEDITION_REWARD'
                                         or typeName == 'DAILY_QUEST_REWARD'
+                                        or typeName == 'WITHDRAWAL_REFUND'
                                         or (typeName == 'ADMIN_ADJUSTMENT' and tx.amount() != null and tx.amount().signum() >= 0)
                                         or (typeName == 'AUCTION_SETTLEMENT' and tx.description() != null and (#strings.containsIgnoreCase(tx.description(), 'nhận') or #strings.containsIgnoreCase(tx.description(), 'bán')))},
                              absAmount=${tx.amount() != null ? tx.amount().abs() : 0},
@@ -950,6 +924,6 @@
 
     <div th:replace="~{fragments/footer :: footer}"></div>
     <div th:replace="~{fragments/header :: commonScripts}"></div>
-    <script defer th:src="@{/js/pages/wallet.js(v='20261121k')}"></script>
+    <script defer th:src="@{/js/pages/wallet.js(v='20261127g')}"></script>
   </body>
 </html>

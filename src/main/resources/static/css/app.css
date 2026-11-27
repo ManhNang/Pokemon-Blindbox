@@ -14,15 +14,18 @@
 /* Khôi phục tức thì Tab đang chọn trên trang Quản trị (/admin/dashboard) từ data-admin-tab trong <head> */
 html[data-admin-tab="rarities"] #admin-panel-sets,
 html[data-admin-tab="cards"] #admin-panel-sets,
-html[data-admin-tab="users"] #admin-panel-sets {
+html[data-admin-tab="users"] #admin-panel-sets,
+html[data-admin-tab="withdrawals"] #admin-panel-sets {
     display: none !important;
 }
 html[data-admin-tab="rarities"] #admin-panel-rarities,
 html[data-admin-tab="cards"] #admin-panel-cards,
-html[data-admin-tab="users"] #admin-panel-users {
+html[data-admin-tab="users"] #admin-panel-users,
+html[data-admin-tab="withdrawals"] #admin-panel-withdrawals {
     display: block !important;
 }
-html[data-admin-tab="users"] #admin-set-toolbar {
+html[data-admin-tab="users"] #admin-set-toolbar,
+html[data-admin-tab="withdrawals"] #admin-set-toolbar {
     display: none !important;
 }
 

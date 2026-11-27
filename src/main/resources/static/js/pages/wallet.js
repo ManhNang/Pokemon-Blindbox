@@ -334,3 +334,136 @@ document.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('pagehide', stopVietQrPolling);
+
+// ==================== RÚT XU VỀ TÀI KHOẢN NGÂN HÀNG (ADMIN DUYỆT KÈM VIETQR) ====================
+window.switchWalletActionTab = function (mode) {
+    const isWithdraw = mode === 'withdraw';
+    document.getElementById('wallet-deposit-panel')?.classList.toggle('hidden', isWithdraw);
+    document.getElementById('wallet-withdraw-panel')?.classList.toggle('hidden', !isWithdraw);
+
+    const depBtn = document.getElementById('wallet-mode-btn-deposit');
+    const wdBtn = document.getElementById('wallet-mode-btn-withdraw');
+    const activeCls = 'pk-btn-primary rounded-xl px-3.5 py-2 text-xs font-extrabold cursor-pointer transition whitespace-nowrap';
+    const inactiveCls = 'rounded-xl px-3.5 py-2 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition whitespace-nowrap';
+    if (depBtn) depBtn.className = isWithdraw ? inactiveCls : activeCls;
+    if (wdBtn) wdBtn.className = isWithdraw ? activeCls : inactiveCls;
+};
+
+window.updateWithdrawVndPreview = function () {
+    const xu = Math.max(0, parseInt(document.getElementById('withdraw-xu-amount')?.value || '0', 10) || 0);
+    const vnd = Math.floor(xu * 10 * 0.9); // 100 Xu = 1.000 ₫, trừ 10% phí rút
+    const el = document.getElementById('withdraw-vnd-preview');
+    if (el) el.textContent = `Thực nhận (-10% phí): ${vnd.toLocaleString('vi-VN')} ₫`;
+};
+
+window.loadMyWithdrawals = async function () {
+    const section = document.getElementById('my-withdrawals-section');
+    const tbody = document.getElementById('my-withdrawals-tbody');
+    const countEl = document.getElementById('my-withdrawals-count');
+    if (!section || !tbody) return;
+
+    try {
+        const res = await fetch('/api/v1/withdrawals/me');
+        if (!res.ok) return;
+        const items = await res.json();
+        if (!Array.isArray(items) || items.length === 0) {
+            section.classList.add('hidden');
+            return;
+        }
+        section.classList.remove('hidden');
+        if (countEl) countEl.textContent = `${items.length} yêu cầu`;
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v ?? ''));
+
+        tbody.innerHTML = items.map((w) => {
+            const xuStr = Math.round(Number(w.xuAmount || 0)).toLocaleString('vi-VN');
+            const vndStr = Math.round(Number(w.vndAmount || 0)).toLocaleString('vi-VN');
+            const badge = w.status === 'APPROVED'
+                ? '<span class="inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">Đã chuyển tiền</span>'
+                : (w.status === 'REJECTED'
+                    ? '<span class="inline-flex items-center rounded-full bg-rose-500/15 px-2.5 py-0.5 text-[10.5px] font-bold text-rose-600 dark:text-rose-400">Từ chối • Đã hoàn Xu</span>'
+                    : '<span class="inline-flex items-center rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10.5px] font-bold text-amber-600 dark:text-amber-400">Chờ Admin duyệt</span>');
+            const noteHtml = w.adminNote
+                ? `<div class="mt-0.5 text-[10.5px] pk-text-secondary">${esc(w.adminNote)}</div>`
+                : '';
+            return `
+                <tr>
+                    <td class="px-4 py-3 font-mono font-bold pk-text-primary whitespace-nowrap">${esc(w.withdrawalCode)}</td>
+                    <td class="px-4 py-3">
+                        <div class="font-bold pk-text-primary">${esc(w.bankCode)} • <span class="pk-num">${esc(w.accountNumber)}</span></div>
+                        <div class="text-[11px] pk-text-secondary uppercase">${esc(w.accountName)}</div>
+                    </td>
+                    <td class="px-4 py-3 text-right pk-num whitespace-nowrap">
+                        <div class="font-extrabold text-rose-600 dark:text-rose-400">-${xuStr} Xu</div>
+                        <div class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">${vndStr} ₫</div>
+                    </td>
+                    <td class="px-4 py-3 text-right">${badge}${noteHtml}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {}
+};
+
+window.submitWithdrawalRequest = async function (e) {
+    e.preventDefault();
+    const xuAmount = parseInt(document.getElementById('withdraw-xu-amount')?.value || '0', 10) || 0;
+    const bankCode = (document.getElementById('withdraw-bank-code')?.value || '').trim();
+    const accountNumber = (document.getElementById('withdraw-account-number')?.value || '').trim();
+    const accountName = (document.getElementById('withdraw-account-name')?.value || '').trim();
+
+    if (!bankCode) {
+        window.showToast('error', 'Thiếu ngân hàng', 'Vui lòng chọn ngân hàng nhận tiền!');
+        return;
+    }
+    if (!/^[0-9A-Za-z]{6,30}$/.test(accountNumber)) {
+        window.showToast('error', 'Số tài khoản không hợp lệ', 'Số tài khoản gồm 6–30 ký tự chữ/số, không có khoảng trắng!');
+        return;
+    }
+    if (accountName.length < 2) {
+        window.showToast('error', 'Thiếu tên chủ tài khoản', 'Vui lòng nhập đầy đủ tên chủ tài khoản!');
+        return;
+    }
+    if (xuAmount < 1000 || xuAmount % 100 !== 0) {
+        window.showToast('error', 'Số Xu không hợp lệ', 'Tối thiểu 1.000 Xu và phải là bội số của 100 Xu!');
+        return;
+    }
+
+    const btn = document.getElementById('btn-submit-withdrawal');
+    const origText = btn ? btn.textContent : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Đang gửi yêu cầu...';
+    }
+
+    try {
+        const res = await fetch('/api/v1/withdrawals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ xuAmount, bankCode, accountNumber, accountName })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            window.showToast('error', 'Không thể tạo yêu cầu rút tiền', data.message || 'Vui lòng kiểm tra số dư và thông tin tài khoản.');
+            return;
+        }
+        if (data.newWalletBalance != null) {
+            if (typeof window.updateNavbarWallet === 'function') {
+                window.updateNavbarWallet(data.newWalletBalance);
+            }
+            const pageBal = document.getElementById('wallet-page-balance');
+            if (pageBal) pageBal.textContent = `${Math.round(Number(data.newWalletBalance)).toLocaleString('vi-VN')} Xu`;
+        }
+        window.showToast('success', 'Đã gửi yêu cầu rút tiền!', data.message);
+        await window.loadMyWithdrawals();
+    } catch (err) {
+        window.showToast('error', 'Lỗi kết nối', err.message || 'Không thể kết nối máy chủ.');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = origText;
+        }
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.loadMyWithdrawals();
+});
