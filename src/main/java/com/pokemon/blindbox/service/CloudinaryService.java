@@ -78,6 +78,49 @@ public class CloudinaryService {
         }
     }
 
+    /**
+     * Upload ảnh Pack hoặc Box của Bộ sưu tập (PNG/WebP/JPG, <= 5MB) lên Cloudinary CDN
+     * để lưu trữ bền vững trên cloud (không bị mất khi Render restart / redeploy).
+     */
+    public String uploadSetMediaImage(MultipartFile file, String setCode, String mediaType) {
+        validateImageFile(file);
+
+        String safeCode = (setCode != null ? setCode.trim().toLowerCase().replaceAll("[^a-z0-9_-]", "") : "set");
+        if (safeCode.isEmpty()) safeCode = "set";
+        String safeKind = "box".equalsIgnoreCase(mediaType) ? "box" : "pack";
+
+        String setsFolder = baseFolder.endsWith("/cards")
+                ? baseFolder.substring(0, baseFolder.length() - "/cards".length()) + "/sets"
+                : baseFolder + "/sets";
+        String publicId = String.format(
+                "%s/%s/%s_%s",
+                setsFolder,
+                safeCode,
+                safeKind,
+                UUID.randomUUID().toString().substring(0, 8)
+        );
+
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "public_id", publicId,
+                            "overwrite", true,
+                            "resource_type", "image",
+                            "format", "webp"
+                    )
+            );
+
+            String secureUrl = (String) uploadResult.get("secure_url");
+            log.info("Uploaded {} media image to Cloudinary: publicId={}, secureUrl={}", safeKind, publicId, secureUrl);
+            return secureUrl;
+        } catch (IOException ex) {
+            log.error("Failed to upload {} media image to Cloudinary for setCode={}", safeKind, setCode, ex);
+            throw new BusinessValidationException("Không thể tải ảnh Pack/Box lên Cloudinary: " + ex.getMessage());
+        }
+    }
+
     private void validateImageFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BusinessValidationException("File ảnh thẻ bài không được để trống.");

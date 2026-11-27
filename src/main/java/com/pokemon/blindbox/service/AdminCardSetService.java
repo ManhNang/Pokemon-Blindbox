@@ -105,64 +105,10 @@ public class AdminCardSetService {
     }
 
     /**
-     * Upload ảnh PNG/WebP tùy chỉnh cho Pack hoặc Box của Bộ Thẻ (tối đa 2MB).
-     * Lưu trực tiếp vào thư mục ./uploads/sets/ (phục vụ ngay qua WebMvcConfig tại /uploads/**).
+     * Upload ảnh PNG/WebP/JPG tùy chỉnh cho Pack hoặc Box của Bộ Thẻ lên Cloudinary CDN (bền vững trên Render).
      */
     public String uploadSetMediaImage(MultipartFile file, String setCode, String mediaType) {
-        if (file == null || file.isEmpty()) {
-            throw new BusinessValidationException("Vui lòng chọn file ảnh PNG hoặc WebP!");
-        }
-        long maxBytes = 2L * 1024L * 1024L;
-        if (file.getSize() > maxBytes) {
-            throw new BusinessValidationException("Dung lượng ảnh tối đa là 2MB!");
-        }
-
-        String contentType = file.getContentType() != null ? file.getContentType().toLowerCase() : "";
-        byte[] bytes;
-        try {
-            bytes = file.getBytes();
-        } catch (java.io.IOException e) {
-            throw new BusinessValidationException("Không thể đọc dữ liệu file ảnh tải lên!");
-        }
-
-        boolean isPng = bytes.length >= 8
-                && (bytes[0] & 0xFF) == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47;
-        boolean isWebp = bytes.length >= 12
-                && bytes[0] == 'R' && bytes[1] == 'I' && bytes[2] == 'F' && bytes[3] == 'F'
-                && bytes[8] == 'W' && bytes[9] == 'E' && bytes[10] == 'B' && bytes[11] == 'P';
-
-        if (!((isPng && (contentType.isEmpty() || contentType.equals("image/png")))
-                || (isWebp && (contentType.isEmpty() || contentType.equals("image/webp"))))) {
-            throw new BusinessValidationException("Chỉ chấp nhận định dạng ảnh PNG (.png) hoặc WebP (.webp) hợp lệ!");
-        }
-
-        String ext = isPng ? ".png" : ".webp";
-        String safeCode = (setCode != null ? setCode.trim().toLowerCase().replaceAll("[^a-z0-9_-]", "") : "set");
-        if (safeCode.isEmpty()) safeCode = "set";
-        String safeKind = "box".equalsIgnoreCase(mediaType) ? "box" : "pack";
-        String fileName = safeCode + "-" + safeKind + "-" + UUID.randomUUID().toString().substring(0, 8) + ext;
-
-        try {
-            java.nio.file.Path uploadDir = java.nio.file.Paths.get("uploads", "sets").toAbsolutePath().normalize();
-            java.nio.file.Files.createDirectories(uploadDir);
-            java.nio.file.Path targetFile = uploadDir.resolve(fileName);
-            java.nio.file.Files.write(targetFile, bytes);
-
-            // Sao chép thêm vào src/main/resources/static/uploads/sets (nếu chạy môi trường dev) để lưu bền vững
-            java.nio.file.Path staticBase = java.nio.file.Paths.get("src", "main", "resources", "static");
-            if (java.nio.file.Files.isDirectory(staticBase)) {
-                java.nio.file.Path staticSetsDir = staticBase.resolve("uploads").resolve("sets");
-                java.nio.file.Files.createDirectories(staticSetsDir);
-                java.nio.file.Files.write(staticSetsDir.resolve(fileName), bytes);
-            }
-        } catch (java.io.IOException e) {
-            log.error("Failed to save uploaded set media image {}", fileName, e);
-            throw new BusinessValidationException("Không thể lưu file ảnh lên máy chủ: " + e.getMessage());
-        }
-
-        String publicUrl = "/uploads/sets/" + fileName;
-        log.info("Uploaded custom {} image for set {}: {}", safeKind, safeCode, publicUrl);
-        return publicUrl;
+        return cloudinaryService.uploadSetMediaImage(file, setCode, mediaType);
     }
 
     private String normalizeNullableImageUrl(String rawUrl) {
