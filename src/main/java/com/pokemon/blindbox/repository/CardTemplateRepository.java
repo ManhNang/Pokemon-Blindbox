@@ -7,8 +7,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,4 +60,19 @@ public interface CardTemplateRepository extends JpaRepository<CardTemplate, Long
      */
     @EntityGraph(attributePaths = {"cardSet", "rarity", "cardSpecies"})
     List<CardTemplate> findByCardSetIdOrderByCardNumberAsc(Long setId);
+
+    /**
+     * Lấy danh sách thẻ đang mở bán theo danh sách setId, sắp xếp ưu tiên thẻ hiếm nhất
+     * (dropWeight nhỏ nhất -> giá bán nhanh cao nhất -> cardNumber lớn nhất) phục vụ Chase Cards Preview trên /store.
+     */
+    @EntityGraph(attributePaths = {"cardSet", "rarity", "cardSpecies"})
+    @Query("""
+            SELECT ct FROM CardTemplate ct
+            JOIN ct.rarity r
+            WHERE ct.cardSet.id IN :setIds
+              AND (ct.isActive = true OR ct.isActive IS NULL)
+              AND ct.imageUrl IS NOT NULL
+            ORDER BY COALESCE(r.dropWeight, 1000000) ASC, COALESCE(r.buybackPrice, 0) DESC, ct.cardNumber DESC
+            """)
+    List<CardTemplate> findActiveChaseCandidatesBySetIds(@Param("setIds") Collection<Long> setIds);
 }

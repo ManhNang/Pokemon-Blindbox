@@ -29,8 +29,6 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class StoreQueryService {
 
-        private static final int MAX_USER_CARDS_IN_VIEW = 200;
-
         private final CatalogCacheService catalogCacheService;
         private final BoosterBoxRepository boosterBoxRepository;
         private final BoosterPackRepository boosterPackRepository;
@@ -73,17 +71,88 @@ public class StoreQueryService {
                 return new StorePageData(boxList, selectedBoxDto, packs, rarities, totalDropWeight);
         }
 
+        /**
+         * Nạp dữ liệu trưng bày cho trang /store:
+         * - Top 5 thẻ hiếm nhất (Chase Cards) cho mỗi Bộ sưu tập.
+         * - Top 3 thẻ hiếm nổi bật nhất cho Hero 3D Fan Banner.
+         * - Tối đa 8 pha mở thẻ hiếm gần nhất cho Live Pull Ticker.
+         */
+        public StoreShowcaseData loadStoreShowcaseData(List<Long> setIds) {
+                Map<Long, List<CardTemplateResponseDTO>> chaseCardsBySet = new java.util.LinkedHashMap<>();
+                List<CardTemplateResponseDTO> heroFeaturedCards = new java.util.ArrayList<>();
+
+                if (setIds != null && !setIds.isEmpty()) {
+                        List<CardTemplate> candidates = cardTemplateRepository.findActiveChaseCandidatesBySetIds(setIds);
+                        for (CardTemplate ct : candidates) {
+                                Long sId = ct.getCardSet() != null ? ct.getCardSet().getId() : null;
+                                if (sId == null) continue;
+                                List<CardTemplateResponseDTO> bucket = chaseCardsBySet.computeIfAbsent(sId, k -> new java.util.ArrayList<>());
+                                if (bucket.size() < 5) {
+                                        CardTemplateResponseDTO dto = CardTemplateResponseDTO.fromEntity(ct);
+                                        bucket.add(dto);
+                                }
+                        }
+                        int round = 0;
+                        while (heroFeaturedCards.size() < 3 && round < 3) {
+                                boolean addedAny = false;
+                                for (Long sId : setIds) {
+                                        List<CardTemplateResponseDTO> bucket = chaseCardsBySet.get(sId);
+                                        if (bucket != null && round < bucket.size()) {
+                                                heroFeaturedCards.add(bucket.get(round));
+                                                addedAny = true;
+                                                if (heroFeaturedCards.size() >= 3) break;
+                                        }
+                                }
+                                if (!addedAny) break;
+                                round++;
+                        }
+                }
+
+                List<UserCard> rarePulls = userCardRepository.findRecentRarePulls(100, PageRequest.of(0, 8));
+                if (rarePulls.isEmpty()) {
+                        rarePulls = userCardRepository.findRecentPulls(PageRequest.of(0, 6));
+                }
+
+                List<Long> pullUserIds = rarePulls.stream()
+                                .map(UserCard::getUserId)
+                                .filter(java.util.Objects::nonNull)
+                                .distinct()
+                                .toList();
+                Map<Long, String> usernameById = pullUserIds.isEmpty()
+                                ? Map.of()
+                                : userRepository.findAllById(pullUserIds).stream()
+                                                .collect(Collectors.toMap(User::getId, User::getUsername, (a, b) -> a));
+
+                List<RecentPullDTO> recentPullDtos = rarePulls.stream()
+                                .filter(uc -> uc.getCardTemplate() != null)
+                                .map(uc -> {
+                                        CardTemplate ct = uc.getCardTemplate();
+                                        Rarity r = ct.getRarity();
+                                        CardSet cs = ct.getCardSet();
+                                        String rawName = usernameById.getOrDefault(uc.getUserId(), "Trainer #" + uc.getUserId());
+                                        return new RecentPullDTO(
+                                                        rawName,
+                                                        ct.getName(),
+                                                        ct.getImageUrl(),
+                                                        r != null ? r.getName() : "Rare",
+                                                        (r != null && r.getColorHex() != null && !r.getColorHex().isBlank()) ? r.getColorHex() : "#F59E0B",
+                                                        cs != null ? cs.getName() : "",
+                                                        ct.getId());
+                                })
+                                .toList();
+
+                return new StoreShowcaseData(chaseCardsBySet, heroFeaturedCards, recentPullDtos);
+        }
+
         public InventoryPageData loadInventoryPage(Long userId) {
                 List<CardSetResponseDTO> cardSets = catalogCacheService.getAllCardSets();
                 List<RarityResponseDTO> rarities = catalogCacheService.getAllRaritiesWithWeights();
                 List<CardSpeciesResponseDTO> speciesList = catalogCacheService.getAllCardSpecies();
 
                 // Sắp xếp trực tiếp từ SQL theo Giá bán nhanh Cao -> Thấp, Mã thẻ Tăng dần, Bản
-                // sao chưa khóa lên trước
+                // sao chưa khóa lên trước (không cắt LIMIT 200 trước khi gộp trùng để giữ đủ 100% thẻ Common)
                 List<UserCardResponseDTO> allCards = userCardRepository
-                                .findByUserIdOrderByDefaultInventorySort(userId,
-                                                PageRequest.of(0, MAX_USER_CARDS_IN_VIEW))
-                                .getContent()
+                                .findAllByUserIdOrderByDefaultInventorySort(userId)
                                 .stream()
                                 .map(uc -> UserCardResponseDTO.fromEntity(uc,
                                                 CardTemplateResponseDTO.fromEntity(uc.getCardTemplate())))
@@ -247,9 +316,7 @@ public class StoreQueryService {
                 }
 
                 List<UserCardResponseDTO> allMyCards = userCardRepository
-                                .findByUserIdOrderByDefaultInventorySort(userId,
-                                                PageRequest.of(0, MAX_USER_CARDS_IN_VIEW))
-                                .getContent()
+                                .findAllByUserIdOrderByDefaultInventorySort(userId)
                                 .stream()
                                 .map(uc -> UserCardResponseDTO.fromEntity(uc,
                                                 CardTemplateResponseDTO.fromEntity(uc.getCardTemplate())))
@@ -438,5 +505,21 @@ public class StoreQueryService {
                         List<CardTemplateResponseDTO> cardTemplates,
                         List<BoosterBoxSummaryResponseDTO> boosterBoxes,
                         long sealedAvailableBoxCount) {
+        }
+
+        public record RecentPullDTO(
+                        String trainerName,
+                        String cardName,
+                        String cardImageUrl,
+                        String rarityName,
+                        String rarityColor,
+                        String setName,
+                        Long cardTemplateId) {
+        }
+
+        public record StoreShowcaseData(
+                        Map<Long, List<CardTemplateResponseDTO>> chaseCardsBySet,
+                        List<CardTemplateResponseDTO> heroFeaturedCards,
+                        List<RecentPullDTO> recentRarePulls) {
         }
 }

@@ -302,6 +302,7 @@
 
 </main>
 
+<div th:replace="~{fragments/footer :: footer}"></div>
 <div th:replace="~{fragments/header :: commonScripts}"></div>
 <!-- Chỉ nạp SockJS & STOMP (defer) ở trang Phòng Đấu Giá thay vì tải chặn render trên mọi trang -->
 <script defer src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>

@@ -70,11 +70,25 @@ public interface UserCardRepository extends JpaRepository<UserCard, Long> {
     @Query("""
             SELECT uc FROM UserCard uc
             JOIN uc.cardTemplate ct
-            JOIN ct.rarity r
+            LEFT JOIN ct.rarity r
             WHERE uc.userId = :userId
-            ORDER BY r.buybackPrice DESC, ct.cardNumber ASC, uc.isLocked ASC, uc.id ASC
+            ORDER BY COALESCE(r.buybackPrice, 0) DESC, ct.cardNumber ASC, uc.isLocked ASC, uc.id ASC
             """)
     Page<UserCard> findByUserIdOrderByDefaultInventorySort(@Param("userId") Long userId, Pageable pageable);
+
+    /**
+     * Truy vấn TOÀN BỘ bản sao thẻ của người chơi (không cắt LIMIT 200 trước khi gộp trùng),
+     * đảm bảo không bao giờ làm biến mất các thẻ Common ở cuối danh sách khi người chơi có > 200 bản sao.
+     */
+    @EntityGraph(attributePaths = {"cardTemplate", "cardTemplate.cardSet", "cardTemplate.rarity", "cardTemplate.cardSpecies"})
+    @Query("""
+            SELECT uc FROM UserCard uc
+            JOIN uc.cardTemplate ct
+            LEFT JOIN ct.rarity r
+            WHERE uc.userId = :userId
+            ORDER BY COALESCE(r.buybackPrice, 0) DESC, ct.cardNumber ASC, uc.isLocked ASC, uc.id ASC
+            """)
+    List<UserCard> findAllByUserIdOrderByDefaultInventorySort(@Param("userId") Long userId);
 
     /**
      * Truy vấn TOÀN BỘ thẻ rảnh (isLocked = false) cho Đảo Pokémon & Trạm Thám Hiểm,
@@ -138,4 +152,21 @@ public interface UserCardRepository extends JpaRepository<UserCard, Long> {
         Long getUserId();
         Long getTotalCards();
     }
+
+    /**
+     * Lấy các lượt mở thẻ hiếm gần nhất (ưu tiên độ hiếm có dropWeight <= 100) cho Live Pull Ticker trên trang /store.
+     */
+    @EntityGraph(attributePaths = {"cardTemplate", "cardTemplate.cardSet", "cardTemplate.rarity", "cardTemplate.cardSpecies"})
+    @Query("""
+            SELECT uc FROM UserCard uc
+            JOIN uc.cardTemplate ct
+            JOIN ct.rarity r
+            WHERE COALESCE(r.dropWeight, 1000) <= :maxDropWeight
+            ORDER BY uc.acquiredAt DESC, uc.id DESC
+            """)
+    List<UserCard> findRecentRarePulls(@Param("maxDropWeight") int maxDropWeight, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"cardTemplate", "cardTemplate.cardSet", "cardTemplate.rarity", "cardTemplate.cardSpecies"})
+    @Query("SELECT uc FROM UserCard uc ORDER BY uc.acquiredAt DESC, uc.id DESC")
+    List<UserCard> findRecentPulls(Pageable pageable);
 }

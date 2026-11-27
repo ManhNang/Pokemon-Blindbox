@@ -774,8 +774,15 @@ window.flipSingleVaultCard = function (sceneEl, isBulkFlip) {
     const colorHex = sceneEl.getAttribute('data-color') || '#94A3B8';
     const isHolo = sceneEl.getAttribute('data-holo') === 'true';
 
+    if (window.SoundFX) {
+        window.SoundFX.playCardFlip();
+    }
+
     const onRevealComplete = ({ effectCode: eff, skipped }) => {
         sceneEl.querySelector('.vault-card-caption')?.classList.replace('opacity-0', 'opacity-100');
+        if (!skipped && (isHolo || (eff && eff !== 'NONE')) && window.SoundFX) {
+            window.SoundFX.playRareHit();
+        }
         if (!skipped && eff !== 'NONE' && (eff === 'ULTRA' || eff === 'FUTURISTIC' || eff === 'MEGA_HYPER')) {
             triggerIsolatedShake(sceneEl);
         }
@@ -972,11 +979,15 @@ window.closeSellToShopModal = function () {
 function applyBuybackDomUpdate(data) {
     if (!data) return;
 
-    // 1. Cập nhật số dư ví trên Header
+    // 1. Cập nhật số dư ví trên Header (Rolling Coin Counter + âm thanh Xu)
     const newBal = data.newBalance !== undefined ? data.newBalance : data.newWalletBalance;
     if (newBal !== undefined && newBal !== null) {
-        const balEl = document.getElementById('nav-wallet-balance');
-        if (balEl) balEl.textContent = window.formatVND(newBal);
+        if (typeof window.updateNavbarWallet === 'function') {
+            window.updateNavbarWallet(newBal);
+        } else {
+            const balEl = document.getElementById('nav-wallet-balance');
+            if (balEl) balEl.textContent = window.formatVND(newBal);
+        }
     }
 
     // 2. Cập nhật các bộ đếm tổng số thẻ trong kho

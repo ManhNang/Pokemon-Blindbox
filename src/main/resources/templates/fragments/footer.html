@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<footer th:fragment="footer" class="mt-14 bg-slate-50 border-t border-slate-200 dark:bg-slate-950/80 dark:border-white/10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
+        <!-- Bố cục 4 cột rõ ràng -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+
+            <!-- Cột 1: Thương hiệu -->
+            <div class="space-y-3">
+                <a th:href="@{/store}" class="inline-flex items-center gap-2.5 group">
+                    <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600 text-white shadow-md shadow-rose-600/25 shrink-0">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <circle cx="12" cy="12" r="2.5"></circle>
+                            <line x1="3" y1="12" x2="9.5" y2="12"></line>
+                            <line x1="14.5" y1="12" x2="21" y2="12"></line>
+                        </svg>
+                    </div>
+                    <span class="text-base font-extrabold tracking-tight pk-text-primary">Pokémon Blindbox</span>
+                </a>
+                <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                    Nền tảng mở Pack &amp; Box thẻ bài Pokémon Gacha chuẩn CSPRNG, đấu giá P2P Real-time và nuôi thẻ sinh Xu trên Đảo Pokémon.
+                </p>
+            </div>
+
+            <!-- Cột 2: KHÁM PHÁ -->
+            <div class="space-y-3">
+                <h3 class="text-[11px] font-extrabold uppercase tracking-wider pk-text-primary">Khám phá</h3>
+                <ul class="space-y-2.5 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    <li><a th:href="@{/store}" class="hover:text-amber-500 transition">Cửa hàng</a></li>
+                    <li><a th:href="@{/inventory}" class="hover:text-amber-500 transition">Kho đồ</a></li>
+                    <li><a th:href="@{/market}" class="hover:text-amber-500 transition">Chợ &amp; Đấu giá</a></li>
+                    <li><a th:href="@{/sanctuary}" class="hover:text-amber-500 transition">Đảo Pokémon</a></li>
+                    <li><a th:href="@{/wallet}" class="hover:text-amber-500 transition">Ví Xu</a></li>
+                </ul>
+            </div>
+
+            <!-- Cột 3: QUY ĐỊNH & HỖ TRỢ -->
+            <div class="space-y-3">
+                <h3 class="text-[11px] font-extrabold uppercase tracking-wider pk-text-primary">Quy định &amp; Hỗ trợ</h3>
+                <ul class="space-y-2.5 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    <li><a th:href="@{/store}" class="hover:text-amber-500 transition">Tỷ lệ rơi CSPRNG</a></li>
+                    <li><a th:href="@{/market}" class="hover:text-amber-500 transition">Quy tắc Đấu giá P2P</a></li>
+                    <li><a th:href="@{/sanctuary}" class="hover:text-amber-500 transition">Hướng dẫn Đảo Pokémon</a></li>
+                    <li><a th:href="@{/wallet}" class="hover:text-amber-500 transition">Điều khoản sử dụng</a></li>
+                </ul>
+            </div>
+
+            <!-- Cột 4: THANH TOÁN & HỆ THỐNG -->
+            <div class="space-y-3">
+                <h3 class="text-[11px] font-extrabold uppercase tracking-wider pk-text-primary">Thanh toán &amp; Hệ thống</h3>
+                <div class="space-y-2.5">
+                    <div class="inline-flex items-center gap-2 rounded-full bg-emerald-500/12 border border-emerald-500/30 px-3 py-1 text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300">
+                        <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                        <span>VietQR Tự động 24/7</span>
+                    </div>
+                    <div class="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                        Tỷ giá chuẩn: <strong class="pk-num font-extrabold text-amber-600 dark:text-amber-400">1.000 ₫ = 100 Xu</strong>
+                    </div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400">
+                        Reset kho cửa hàng <strong class="pk-num pk-text-primary">00:00</strong> mỗi ngày.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Bottom Bar: Thanh bản quyền -->
+        <div class="mt-10 pt-6 border-t border-slate-200 dark:border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 text-xs text-slate-500 dark:text-slate-400">
+            <span>© 2026 Pokémon Blindbox • Dự án học tập &amp; Fan-made</span>
+            <span>Pokémon là thương hiệu thuộc Nintendo / Creatures Inc. / GAME FREAK inc.</span>
+        </div>
+    </div>
+</footer>
+</body>
+</html>

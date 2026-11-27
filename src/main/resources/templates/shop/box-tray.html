@@ -6,26 +6,99 @@
 <!-- Single-row Sticky Glass Navbar -->
 <div th:replace="~{fragments/header :: navbar('store')}"></div>
 
-<main class="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 lg:px-8 space-y-5">
+<main class="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 lg:px-8 space-y-5">
 
-    <!-- ==================== ĐẦU TRANG (1 HÀNG DUY NHẤT: TIÊU ĐỀ + ⓘ + KHO PACK & BOX) ==================== -->
-    <section class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight pk-text-primary">Cửa Hàng</h1>
-            <button type="button"
-                    id="btn-toggle-drop-rates"
-                    onclick="window.toggleDropRatePopover(event)"
-                    title="Quy định & Tỷ lệ rơi thẻ"
-                    aria-label="Quy định & Tỷ lệ rơi thẻ"
-                    class="flex h-7 w-7 items-center justify-center rounded-full pk-surface hover:border-amber-500/60 text-xs font-extrabold pk-text-secondary hover:pk-text-primary cursor-pointer transition">
-                ⓘ
-            </button>
+    <!-- ==================== 1. HERO BANNER TINH GỌN + ĐẾM NGƯỢC 00:00 + 3D CHASE FAN ==================== -->
+    <section class="pk-store-hero rounded-3xl px-5 py-4 sm:px-7 sm:py-5">
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <!-- Trái: Tiêu đề gọn, Đồng hồ đếm ngược 00:00 & 2 nút phụ -->
+            <div class="space-y-2.5 max-w-xl">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/35 px-2.5 py-0.5 text-[10.5px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-300">
+                        <span class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        Cửa Hàng Chính Hãng
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full pk-surface-muted px-2.5 py-0.5 text-[11px] font-bold pk-text-secondary">
+                        <svg class="h-3.5 w-3.5 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+                        </svg>
+                        <span>Reset kho 00:00 sau</span>
+                        <strong id="store-reset-countdown" class="pk-num font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">--:--:--</strong>
+                    </span>
+                </div>
+
+                <div class="space-y-1">
+                    <h1 class="text-xl sm:text-2xl font-black tracking-tight pk-text-primary leading-snug">
+                        Săn Thẻ Pokémon Hiếm &amp; Mở Box Nguyên Seal
+                    </h1>
+                    <p class="text-xs sm:text-[13px] pk-text-secondary leading-relaxed">
+                        Mua Pack lẻ hoặc Box nguyên seal ưu đãi <strong class="pk-num text-amber-600 dark:text-amber-400">-10%</strong> — lưu an toàn vào Kho để mở Gacha hoặc đấu giá P2P.
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 pt-0.5">
+                    <a th:href="@{/inventory(tab='sealed')}"
+                       class="pk-surface-elevated border border-slate-300/80 dark:border-white/15 hover:border-amber-500/60 rounded-xl px-3.5 py-2 text-xs font-extrabold pk-text-primary inline-flex items-center gap-1.5 transition whitespace-nowrap">
+                        <span>Kho Pack &amp; Box →</span>
+                    </a>
+                    <button type="button"
+                            id="btn-toggle-drop-rates"
+                            onclick="window.toggleDropRatePopover(event)"
+                            class="pk-surface-muted border border-slate-300/60 dark:border-white/10 hover:border-amber-500/60 rounded-xl px-3.5 py-2 text-xs font-bold pk-text-secondary hover:pk-text-primary inline-flex items-center gap-1.5 cursor-pointer transition whitespace-nowrap">
+                        <span>ⓘ Tỷ lệ rơi &amp; Quy định</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Phải: 3D Fan Showcase Top 3 Chase Cards (thu gọn chiều cao) -->
+            <div th:if="${!#lists.isEmpty(heroFeaturedCards)}" class="hidden sm:block shrink-0">
+                <div class="pk-hero-fan">
+                    <a th:each="hc, iter : ${heroFeaturedCards}"
+                       th:href="@{/cards/{id}(id=${hc.id()})}"
+                       th:title="${hc.name()} + ' • ' + ${hc.rarityName()}"
+                       th:classappend="'fan-' + ${iter.index}"
+                       class="pk-hero-fan-card holo-tilt-card">
+                        <img th:src="${hc.imageUrl()}"
+                             th:alt="${hc.name()}"
+                             loading="eager" decoding="async"/>
+                    </a>
+                </div>
+            </div>
         </div>
+    </section>
 
-        <a th:href="@{/inventory(tab='sealed')}"
-           class="pk-btn-primary rounded-xl px-3.5 py-2 text-xs sm:text-sm font-extrabold inline-flex items-center gap-1.5 shadow-sm whitespace-nowrap">
-            <span>Kho Pack &amp; Box →</span>
-        </a>
+    <!-- ==================== 2. LIVE PULL TICKER (MẢNH, KHÔNG LẶP THÔNG TIN) ==================== -->
+    <section th:if="${!#lists.isEmpty(recentRarePulls)}"
+             class="pk-surface rounded-2xl px-3.5 py-2 flex items-center gap-3 overflow-hidden">
+        <span class="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/15 border border-rose-500/35 px-2.5 py-1 text-[10.5px] font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400 shrink-0">
+            <span class="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+            Vừa mở trúng
+        </span>
+        <div class="pk-pull-ticker-wrap flex-1 min-w-0">
+            <div class="pk-pull-ticker-track">
+                <!-- Lượt 1 -->
+                <a th:each="pull : ${recentRarePulls}"
+                   th:href="@{/cards/{id}(id=${pull.cardTemplateId()})}"
+                   class="inline-flex items-center gap-2 rounded-full pk-surface-muted px-3 py-1 text-xs hover:border-amber-500/50 border border-transparent transition shrink-0">
+                    <span class="h-2 w-2 rounded-full shrink-0" th:style="'background:' + ${pull.rarityColor()}"></span>
+                    <span class="font-extrabold pk-text-primary" th:text="${pull.trainerName()}">nangdzai2k</span>
+                    <span class="pk-text-secondary">vừa mở</span>
+                    <span class="font-extrabold" th:style="'color:' + ${pull.rarityColor()}" th:text="${pull.cardName()}">Rayquaza ex</span>
+                    <span class="text-[10.5px] font-bold pk-text-secondary" th:text="'(' + ${pull.rarityName()} + ')'">(Hyper Rare)</span>
+                </a>
+                <!-- Lượt 2 (lặp mượt vô tận) -->
+                <a th:each="pull : ${recentRarePulls}"
+                   th:href="@{/cards/{id}(id=${pull.cardTemplateId()})}"
+                   aria-hidden="true"
+                   class="inline-flex items-center gap-2 rounded-full pk-surface-muted px-3 py-1 text-xs hover:border-amber-500/50 border border-transparent transition shrink-0">
+                    <span class="h-2 w-2 rounded-full shrink-0" th:style="'background:' + ${pull.rarityColor()}"></span>
+                    <span class="font-extrabold pk-text-primary" th:text="${pull.trainerName()}">nangdzai2k</span>
+                    <span class="pk-text-secondary">vừa mở</span>
+                    <span class="font-extrabold" th:style="'color:' + ${pull.rarityColor()}" th:text="${pull.cardName()}">Rayquaza ex</span>
+                    <span class="text-[10.5px] font-bold pk-text-secondary" th:text="'(' + ${pull.rarityName()} + ')'">(Hyper Rare)</span>
+                </a>
+            </div>
+        </div>
     </section>
 
     <!-- Popup ⓘ: Gộp Hạn mức 00:00 & Tỷ lệ rơi thẻ -->
@@ -48,7 +121,7 @@
                     <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-500">
                         <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
                     </span>
-                    <span>Mua Box nguyên seal (20 Pack) được ưu đãi giảm ngay <strong class="pk-num text-amber-600 dark:text-amber-400">10%</strong>.</span>
+                    <span>Mua Box nguyên seal được ưu đãi giảm ngay <strong class="pk-num text-amber-600 dark:text-amber-400">10%</strong>.</span>
                 </li>
                 <li class="flex items-start gap-2.5">
                     <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-500">
@@ -58,7 +131,7 @@
                 </li>
             </ul>
             <div class="space-y-2.5">
-                <div class="text-xs font-extrabold pk-text-primary">Tỷ lệ rơi mỗi thẻ bài</div>
+                <div class="text-xs font-extrabold pk-text-primary">Tỷ lệ rơi mỗi thẻ bài (CSPRNG)</div>
                 <div th:each="r : ${rarities}"
                      th:with="rLower=${#strings.toLowerCase(r.name() ?: '')},
                               isHyper=${#strings.contains(rLower, 'hyper') or #strings.contains(rLower, 'secret') or #strings.contains(rLower, 'gold')},
@@ -124,71 +197,83 @@
         <p class="text-sm font-bold pk-text-secondary">Hiện chưa có Bộ sưu tập nào đang mở bán.</p>
     </div>
 
-    <!-- ==================== DANH SÁCH TỪNG BỘ SƯU TẬP ==================== -->
+    <!-- ==================== 3. DANH SÁCH TỪNG BỘ SƯU TẬP (ƯU TIÊN MUA PACK/BOX TRÊN + 5 THẺ HIẾM GỌN BÊN DƯỚI) ==================== -->
     <section th:each="setItem : ${storeSets}"
              th:id="'store-set-card-' + ${setItem.setId()}"
-             class="pk-surface rounded-3xl p-5 space-y-4">
+             th:with="setChases=${chaseCardsBySet != null ? chaseCardsBySet[setItem.setId()] : null},
+                      codeUpper=${#strings.toUpperCase(setItem.setCode() ?: '')},
+                      nameLower=${#strings.toLowerCase(setItem.setName() ?: '')},
+                      setTheme=${(codeUpper == 'DLR' or #strings.contains(nameLower, 'delta')) ? 'emerald-gold' :
+                                ((codeUpper == '30C' or #strings.contains(nameLower, '30th') or #strings.contains(nameLower, 'celebration')) ? 'rose-cyan' :
+                                (setItem.setId() % 3 == 0 ? 'indigo-amber' : (setItem.setId() % 2 == 0 ? 'rose-cyan' : 'emerald-gold')))}"
+             th:attr="data-set-theme=${setTheme}"
+             class="pk-set-section pk-surface rounded-3xl p-5 sm:p-6 space-y-5">
 
-        <!-- Set Header gọn 1 dòng -->
+        <!-- Set Header -->
         <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200/80 dark:border-slate-800/80">
-            <div class="flex items-center gap-2.5">
-                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-600 to-indigo-700 text-white font-extrabold text-xs tracking-wider shadow-sm shrink-0"
+            <div class="flex items-center gap-3">
+                <div class="pk-set-badge flex h-10 w-10 items-center justify-center rounded-xl text-white font-extrabold text-xs tracking-wider shadow-sm shrink-0"
                      th:text="${setItem.setCode()}">DLR</div>
-                <h2 class="text-base sm:text-lg font-extrabold pk-text-primary" th:text="${setItem.setName()}">Delta Reign</h2>
-                <span class="rounded-full pk-surface-muted px-2.5 py-0.5 text-[11px] font-bold pk-text-secondary pk-num"
-                      th:text="${setItem.baseSetTotal()} + ' thẻ'">103 thẻ</span>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h2 class="text-lg sm:text-xl font-extrabold pk-text-primary" th:text="${setItem.setName()}">Delta Reign</h2>
+                    <span class="rounded-full pk-surface-muted px-2.5 py-0.5 text-[11px] font-bold pk-text-secondary pk-num"
+                          th:text="${setItem.baseSetTotal()} + ' thẻ'">103 thẻ</span>
+                </div>
             </div>
-            <a th:href="@{/market(setName=${setItem.setName()})}"
-               class="text-xs font-bold text-rose-600 dark:text-amber-400 hover:underline whitespace-nowrap">
-                Chợ →
-            </a>
+            <div class="flex items-center gap-3">
+                <a th:href="@{/inventory(tab='masterset', setId=${setItem.setId()})}"
+                   class="text-xs font-bold pk-text-secondary hover:pk-text-primary transition whitespace-nowrap">
+                    Xem danh sách thẻ
+                </a>
+                <a th:href="@{/market(setName=${setItem.setName()})}"
+                   class="text-xs font-extrabold text-rose-600 dark:text-amber-400 hover:underline whitespace-nowrap">
+                    Chợ →
+                </a>
+            </div>
         </div>
 
-        <!-- 2 Sản phẩm: Pack & Box -->
+        <!-- 2 Sản phẩm chính: Pack & Box (Đặt ngay sát dưới tiêu đề bộ thẻ) -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-            <!-- SẢN PHẨM 1: PACK (6 THẺ) -->
-            <div class="pk-surface-elevated rounded-2xl p-4 flex flex-col justify-between gap-3.5 border border-sky-500/25">
-                <div class="flex items-center gap-4"
+            <!-- SẢN PHẨM 1: PACK -->
+            <div class="pk-product-card pk-surface-elevated rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-4 border border-sky-500/25">
+                <div class="flex items-center gap-4 sm:gap-5"
                      th:with="hasPackImg=${setItem.packImageUrl() != null and !#strings.isEmpty(setItem.packImageUrl())}">
-                    <div th:if="${hasPackImg}" class="w-20 h-24 shrink-0 flex items-center justify-center">
-                        <img th:src="${setItem.packImageUrl()}"
+                    <div class="pk-product-stage is-pack">
+                        <img th:if="${hasPackImg}"
+                             th:src="${setItem.packImageUrl()}"
                              th:alt="'Pack ' + ${setItem.setName()}"
                              loading="lazy" decoding="async"
                              onerror="this.style.display='none'; this.nextElementSibling.style.display='';"
-                             class="w-full h-full object-contain rounded-lg drop-shadow-sm"/>
-                        <div style="display:none" class="pk-vault-pack-art shrink-0">
-                            <svg class="h-6 w-6 text-sky-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                             class="pk-product-art-hover"/>
+                        <div th:style="${hasPackImg} ? 'display:none' : ''" class="pk-vault-pack-art shrink-0">
+                            <svg class="h-7 w-7 text-sky-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>
                                 <line x1="3" y1="12" x2="9.5" y2="12"/><line x1="14.5" y1="12" x2="21" y2="12"/>
                             </svg>
-                            <span class="mt-0.5 text-[9px] font-black tracking-widest text-sky-200" th:text="${setItem.setCode()}">DLR</span>
+                            <span class="mt-0.5 text-[10px] font-black tracking-widest text-sky-200" th:text="${setItem.setCode()}">DLR</span>
                         </div>
                     </div>
-                    <div th:if="${!hasPackImg}" class="pk-vault-pack-art shrink-0">
-                        <svg class="h-6 w-6 text-sky-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                            <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>
-                            <line x1="3" y1="12" x2="9.5" y2="12"/><line x1="14.5" y1="12" x2="21" y2="12"/>
-                        </svg>
-                        <span class="mt-0.5 text-[9px] font-black tracking-widest text-sky-200" th:text="${setItem.setCode()}">DLR</span>
-                    </div>
-                    <div class="space-y-0.5 min-w-0 flex-1">
-                        <h3 class="text-base font-extrabold pk-text-primary"
+                    <div class="space-y-1 min-w-0 flex-1">
+                        <span class="inline-flex items-center rounded-md bg-sky-500/15 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-sky-600 dark:text-sky-300">
+                            Booster Pack
+                        </span>
+                        <h3 class="text-base sm:text-lg font-extrabold pk-text-primary"
                             th:text="'Pack (' + ${setItem.cardsPerPack()} + ' thẻ)'">
                             Pack (6 thẻ)
                         </h3>
-                        <div class="pk-num text-xl font-extrabold text-amber-600 dark:text-amber-400"
+                        <div class="pk-num text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400"
                              th:text="${#numbers.formatDecimal(setItem.packPrice(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">
-                            450 Xu
+                            300 Xu
                         </div>
                     </div>
                 </div>
 
-                <!-- Thanh hạn mức gọn (Màu theo tỷ lệ tồn kho thực tế) -->
+                <!-- Thanh hạn mức -->
                 <div class="space-y-1"
                      th:with="packPct=${setItem.dailyPackLimit() > 0 ? (setItem.packsRemainingToday() * 100.0 / setItem.dailyPackLimit()) : 0}">
                     <div class="flex items-center justify-between text-xs font-bold">
-                        <span class="pk-text-secondary">Còn lại</span>
+                        <span class="pk-text-secondary">Còn lại hôm nay</span>
                         <span th:id="'pack-stock-text-' + ${setItem.setId()}"
                               class="pk-num"
                               th:classappend="${packPct >= 20} ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
@@ -204,7 +289,7 @@
                     </div>
                 </div>
 
-                <!-- Chọn số lượng & Nút Mua Pack (Secondary dịu mắt) -->
+                <!-- Chọn số lượng & Nút Mua Pack -->
                 <div th:id="'pack-buy-controls-' + ${setItem.setId()}"
                      th:classappend="${setItem.packsRemainingToday() <= 0} ? 'hidden' : ''"
                      class="flex items-center gap-2">
@@ -236,7 +321,7 @@
                             class="flex-1 rounded-xl bg-sky-500/12 hover:bg-sky-500/25 border border-sky-500/45 text-sky-600 dark:text-sky-300 py-2.5 px-4 text-xs sm:text-sm font-extrabold cursor-pointer transition pk-num whitespace-nowrap">
                         <span th:id="'pack-btn-total-' + ${setItem.setId()}"
                               th:text="'Mua Pack • ' + ${#numbers.formatDecimal(setItem.packPrice(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">
-                            Mua Pack • 450 Xu
+                            Mua Pack • 300 Xu
                         </span>
                     </button>
                 </div>
@@ -253,59 +338,56 @@
                 </div>
             </div>
 
-            <!-- SẢN PHẨM 2: BOX (20 PACK) + BADGE -10% -->
-            <div class="pk-surface-elevated rounded-2xl p-4 flex flex-col justify-between gap-3.5 border-2 border-amber-500/35">
-                <div class="flex items-center gap-4"
+            <!-- SẢN PHẨM 2: BOX NGUYÊN SEAL + BADGE -10% -->
+            <div class="pk-product-card pk-surface-elevated rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-4 border-2 border-amber-500/35">
+                <div class="flex items-center gap-4 sm:gap-5"
                      th:with="hasBoxImg=${setItem.boxImageUrl() != null and !#strings.isEmpty(setItem.boxImageUrl())}">
-                    <div th:if="${hasBoxImg}" class="w-24 h-24 shrink-0 flex items-center justify-center">
-                        <img th:src="${setItem.boxImageUrl()}"
+                    <div class="pk-product-stage is-box">
+                        <img th:if="${hasBoxImg}"
+                             th:src="${setItem.boxImageUrl()}"
                              th:alt="'Box ' + ${setItem.setName()}"
                              loading="lazy" decoding="async"
                              onerror="this.style.display='none'; this.nextElementSibling.style.display='';"
-                             class="w-full h-full object-contain rounded-lg drop-shadow-sm"/>
-                        <div style="display:none" class="pk-vault-box-art shrink-0">
+                             class="pk-product-art-hover"/>
+                        <div th:style="${hasBoxImg} ? 'display:none' : ''" class="pk-vault-box-art shrink-0">
                             <svg class="h-7 w-7 text-amber-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>
                                 <line x1="3" y1="12" x2="9.5" y2="12"/><line x1="14.5" y1="12" x2="21" y2="12"/>
                             </svg>
-                            <span class="mt-0.5 text-[9px] font-black tracking-widest text-amber-100" th:text="${setItem.setCode()}">DLR</span>
+                            <span class="mt-0.5 text-[10px] font-black tracking-widest text-amber-100" th:text="${setItem.setCode()}">DLR</span>
                         </div>
                     </div>
-                    <div th:if="${!hasBoxImg}" class="pk-vault-box-art shrink-0">
-                        <svg class="h-7 w-7 text-amber-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                            <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>
-                            <line x1="3" y1="12" x2="9.5" y2="12"/><line x1="14.5" y1="12" x2="21" y2="12"/>
-                        </svg>
-                        <span class="mt-0.5 text-[9px] font-black tracking-widest text-amber-100" th:text="${setItem.setCode()}">DLR</span>
-                    </div>
-                    <div class="space-y-0.5 min-w-0 flex-1">
-                        <div class="flex items-center gap-2">
-                            <h3 class="text-base font-extrabold pk-text-primary"
-                                th:text="'Box (' + ${setItem.packsPerBox()} + ' Pack)'">
-                                Box (20 Pack)
-                            </h3>
+                    <div class="space-y-1 min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="inline-flex items-center rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-300">
+                                Booster Box
+                            </span>
                             <span class="inline-flex items-center rounded-full bg-rose-600 px-2 py-0.5 text-[10.5px] font-extrabold text-white shadow-sm">
                                 -10%
                             </span>
                         </div>
+                        <h3 class="text-base sm:text-lg font-extrabold pk-text-primary"
+                            th:text="'Box (' + ${setItem.packsPerBox()} + ' Pack)'">
+                            Box (36 Pack)
+                        </h3>
                         <div class="flex items-baseline gap-2 flex-wrap">
-                            <span class="pk-num text-xl font-extrabold text-rose-600 dark:text-amber-400"
+                            <span class="pk-num text-xl sm:text-2xl font-black text-rose-600 dark:text-amber-400"
                                   th:text="${#numbers.formatDecimal(setItem.boxDiscountedPrice(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">
-                                8.100 Xu
+                                9.720 Xu
                             </span>
                             <span class="pk-num text-xs font-semibold line-through pk-text-secondary"
                                   th:text="${#numbers.formatDecimal(setItem.boxOriginalPrice(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">
-                                9.000 Xu
+                                10.800 Xu
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Thanh hạn mức gọn (Màu theo tỷ lệ tồn kho thực tế: xanh >=50%, vàng 20-49%, cam/đỏ <20%) -->
+                <!-- Thanh hạn mức -->
                 <div class="space-y-1"
                      th:with="boxPct=${setItem.dailyBoxLimit() > 0 ? (setItem.boxesRemainingToday() * 100.0 / setItem.dailyBoxLimit()) : 0}">
                     <div class="flex items-center justify-between text-xs font-bold">
-                        <span class="pk-text-secondary">Còn lại</span>
+                        <span class="pk-text-secondary">Còn lại hôm nay</span>
                         <span th:id="'box-stock-text-' + ${setItem.setId()}"
                               class="pk-num"
                               th:classappend="${boxPct >= 20} ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
@@ -321,7 +403,7 @@
                     </div>
                 </div>
 
-                <!-- Chọn số lượng & Nút Mua Box (Primary nhấn chính) -->
+                <!-- Chọn số lượng & Nút Mua Box -->
                 <div th:id="'box-buy-controls-' + ${setItem.setId()}"
                      th:classappend="${setItem.boxesRemainingToday() <= 0} ? 'hidden' : ''"
                      class="flex items-center gap-2">
@@ -350,10 +432,10 @@
                             th:id="'btn-buy-box-' + ${setItem.setId()}"
                             th:attr="data-set-id=${setItem.setId()}, data-limit=${setItem.dailyBoxLimit()}"
                             onclick="window.buyStoreItem('box', this)"
-                            class="pk-btn-primary flex-1 rounded-xl py-2.5 px-4 text-xs sm:text-sm font-extrabold cursor-pointer shadow-sm transition pk-num whitespace-nowrap">
+                            class="pk-btn-primary pk-btn-shimmer flex-1 rounded-xl py-2.5 px-4 text-xs sm:text-sm font-extrabold cursor-pointer shadow-sm transition pk-num whitespace-nowrap">
                         <span th:id="'box-btn-total-' + ${setItem.setId()}"
                               th:text="'Mua Box • ' + ${#numbers.formatDecimal(setItem.boxDiscountedPrice(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">
-                            Mua Box • 8.100 Xu
+                            Mua Box • 9.720 Xu
                         </span>
                     </button>
                 </div>
@@ -370,11 +452,50 @@
                 </div>
             </div>
         </div>
+
+        <!-- Dải Thẻ Hiếm Nổi Bật (5 cột nhỏ gọn trên 1 hàng desktop) -->
+        <div th:if="${setChases != null and !#lists.isEmpty(setChases)}"
+             class="pt-3 border-t border-slate-200/70 dark:border-slate-800/70 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+                <span class="inline-flex items-center gap-1.5 text-xs font-extrabold pk-text-primary">
+                    <span class="text-amber-500">★</span>
+                    <span>Thẻ hiếm nổi bật trong bộ</span>
+                </span>
+                <span class="text-[11px] font-semibold pk-text-secondary">Bấm vào thẻ để xem chi tiết</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <a th:each="card : ${setChases}"
+                   th:href="@{/cards/{id}(id=${card.id()})}"
+                   th:style="'--chase-color:' + (${card.rarityColorHex() != null and !#strings.isEmpty(card.rarityColorHex()) ? card.rarityColorHex() : '#fbbf24'})"
+                   th:classappend="${card.rarityIsHolographic()} ? 'holo-tilt-card' : ''"
+                   class="pk-chase-card group">
+                    <div class="pk-chase-thumb">
+                        <img th:src="${card.imageUrl()}"
+                             th:alt="${card.name()}"
+                             loading="lazy" decoding="async"/>
+                    </div>
+                    <div class="pt-1.5 px-0.5 space-y-0.5">
+                        <div class="text-[11.5px] font-extrabold pk-text-primary truncate group-hover:text-amber-500 transition"
+                             th:text="${card.name()}">Rayquaza ex</div>
+                        <div class="flex items-center justify-between gap-1 text-[10px] font-bold">
+                            <span class="truncate"
+                                  th:style="'color:' + (${card.rarityColorHex() != null and !#strings.isEmpty(card.rarityColorHex()) ? card.rarityColorHex() : '#fbbf24'})"
+                                  th:text="${card.rarityName()}">Hyper Rare</span>
+                            <span class="pk-num pk-text-secondary shrink-0"
+                                  th:text="'#' + ${card.cardNumber()}">#141</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
     </section>
 
 </main>
 
+<!-- Compact 4-Column Footer -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
 <div th:replace="~{fragments/header :: commonScripts}"></div>
-<script defer th:src="@{/js/pages/store-catalog.js(v='20261121m')}"></script>
+<script defer th:src="@{/js/pages/store-catalog.js(v='20261127c')}"></script>
 </body>
 </html>

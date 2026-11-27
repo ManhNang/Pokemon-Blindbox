@@ -94,11 +94,82 @@ window.formatVndCurrency = function (amount) {
     return new Intl.NumberFormat('vi-VN').format(num) + ' ₫';
 };
 
-window.updateNavbarWallet = function (newBalance) {
+let __pkWalletAnimFrame = null;
+
+function parseWalletNumber(text) {
+    const cleaned = String(text || '0').replace(/[^\d-]/g, '');
+    const n = parseInt(cleaned, 10);
+    return Number.isFinite(n) ? n : 0;
+}
+
+window.updateNavbarWallet = function (newBalance, options) {
     const balanceEl = document.getElementById('nav-wallet-balance');
-    if (balanceEl && newBalance !== undefined && newBalance !== null) {
-        balanceEl.textContent = window.formatVND(newBalance);
+    if (!balanceEl || newBalance === undefined || newBalance === null) return;
+
+    const target = Math.round(Number(newBalance || 0));
+    const current = parseWalletNumber(balanceEl.textContent);
+    const pillEl = balanceEl.closest('.pk-wallet-pill') || balanceEl.parentElement;
+    const silent = Boolean(options && options.silent);
+
+    if (current === target || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        balanceEl.textContent = window.formatVND(target);
+        return;
     }
+
+    if (__pkWalletAnimFrame) {
+        cancelAnimationFrame(__pkWalletAnimFrame);
+        __pkWalletAnimFrame = null;
+    }
+
+    const isGain = target > current;
+    if (!silent && isGain && window.SoundFX) {
+        window.SoundFX.playCoin();
+    }
+
+    if (pillEl) {
+        pillEl.classList.remove('pk-coin-gain', 'pk-coin-spend');
+        void pillEl.offsetWidth;
+        pillEl.classList.add(isGain ? 'pk-coin-gain' : 'pk-coin-spend');
+        setTimeout(() => pillEl.classList.remove('pk-coin-gain', 'pk-coin-spend'), 700);
+    }
+
+    const duration = 500;
+    const startTime = performance.now();
+    const diff = target - current;
+
+    function step(now) {
+        const progress = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const val = Math.round(current + diff * eased);
+        balanceEl.textContent = window.formatVND(val);
+        if (progress < 1) {
+            __pkWalletAnimFrame = requestAnimationFrame(step);
+        } else {
+            balanceEl.textContent = window.formatVND(target);
+            __pkWalletAnimFrame = null;
+        }
+    }
+    __pkWalletAnimFrame = requestAnimationFrame(step);
+};
+
+/**
+ * Helper tạo Skeleton Loading mờ nhấp nháy khớp hình dạng thẻ bài (dùng cho Kho đồ, Chợ, Sanctuary).
+ */
+window.renderCardSkeletons = function (count) {
+    const n = Math.max(1, Number(count || 6));
+    let html = '';
+    for (let i = 0; i < n; i++) {
+        html += `
+            <div class="pk-surface rounded-2xl p-2.5 space-y-2.5 animate-pulse" aria-hidden="true">
+                <div class="w-full aspect-[5/7] rounded-xl bg-slate-200/80 dark:bg-slate-800/80"></div>
+                <div class="space-y-1.5 px-0.5">
+                    <div class="h-3 w-4/5 rounded-md bg-slate-200/80 dark:bg-slate-800/80"></div>
+                    <div class="h-2.5 w-1/2 rounded-md bg-slate-200/60 dark:bg-slate-800/60"></div>
+                </div>
+            </div>
+        `;
+    }
+    return html;
 };
 
 window.syncThemeIcons = function () {
@@ -164,9 +235,8 @@ window.refreshNavbarWallet = async function () {
         const res = await fetch('/api/v1/wallets/me');
         if (!res.ok) return;
         const data = await res.json();
-        const balanceEl = document.getElementById('nav-wallet-balance');
-        if (balanceEl && data.balance !== undefined) {
-            balanceEl.textContent = window.formatVND(data.balance);
+        if (data.balance !== undefined) {
+            window.updateNavbarWallet(data.balance);
         }
     } catch (e) {}
 };
@@ -180,36 +250,60 @@ window.isHolographicCard = function (card) {
 window.isHolographicRarity = window.isHolographicCard;
 
 /**
- * Gắn hiệu ứng 3D Tilt (perspective(1000px) rotateX/Y) & ánh kim Holographic theo tọa độ chuột
- * cho mọi phần tử có class .pk-holo-card.
+ * Gắn hiệu ứng 3D Tilt (perspective(1000px) rotateX/Y ±11°) & ánh sáng Holo Glare theo tọa độ chuột
+ * tối ưu 60fps bằng requestAnimationFrame & tôn trọng prefers-reduced-motion.
+ * Áp dụng cho mọi phần tử có class .pk-holo-card hoặc .holo-tilt-card.
  */
 window.bindHoloTiltEffects = function (rootContainer) {
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) return;
+
     const scope = rootContainer || document;
-    scope.querySelectorAll('.pk-holo-card').forEach(card => {
+    scope.querySelectorAll('.pk-holo-card, .holo-tilt-card').forEach(card => {
         if (card.getAttribute('data-holo-bound') === 'true') return;
         card.setAttribute('data-holo-bound', 'true');
 
-        card.addEventListener('mousemove', (e) => {
+        let rafId = null;
+        let lastEvent = null;
+
+        const applyFrame = () => {
+            rafId = null;
+            if (!lastEvent) return;
             const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            if (!rect.width || !rect.height) return;
+            const x = lastEvent.clientX - rect.left;
+            const y = lastEvent.clientY - rect.top;
             const pctX = Math.max(0, Math.min(100, (x / rect.width) * 100));
             const pctY = Math.max(0, Math.min(100, (y / rect.height) * 100));
 
-            const rotateY = ((pctX - 50) / 50) * 13;
-            const rotateX = ((50 - pctY) / 50) * 13;
+            const rotateY = ((pctX - 50) / 50) * 11;
+            const rotateX = ((50 - pctY) / 50) * 11;
 
+            card.style.transition = 'transform 0.08s linear';
             card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.03, 1.03, 1.03)`;
             card.style.setProperty('--mx', `${pctX.toFixed(1)}%`);
             card.style.setProperty('--my', `${pctY.toFixed(1)}%`);
             card.style.setProperty('--bgx', `${(50 + (pctX - 50) * 0.6).toFixed(1)}%`);
             card.style.setProperty('--bgy', `${(50 + (pctY - 50) * 0.6).toFixed(1)}%`);
             card.style.setProperty('--holo-opacity', '0.92');
-        });
+        };
+
+        card.addEventListener('mousemove', (e) => {
+            lastEvent = e;
+            if (!rafId) {
+                rafId = requestAnimationFrame(applyFrame);
+            }
+        }, { passive: true });
 
         card.addEventListener('mouseleave', () => {
+            lastEvent = null;
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+            card.style.transition = 'transform 0.35s ease-out';
             card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
-            card.style.setProperty('--holo-opacity', '0.52');
+            card.style.setProperty('--holo-opacity', '0.45');
         });
     });
 };

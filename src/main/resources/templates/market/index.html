@@ -206,6 +206,7 @@
 
                 <div class="flex items-start gap-3.5">
                     <a th:if="${isCard and auc.card() != null}" th:href="@{/cards/{id}(id=${auc.card().id()})}"
+                       th:classappend="${auc.card().rarityIsHolographic()} ? 'holo-tilt-card' : ''"
                        class="card-image-wrapper pk-card-frame !w-20 shrink-0 pk-surface-muted">
                         <img th:src="${auc.card().imageUrl()}"
                              th:alt="${auc.card().name()}"
@@ -392,7 +393,8 @@
                                     <polyline points="20 6 9 17 4 12"/>
                                 </svg>
                             </span>
-                            <div class="w-[88%] aspect-[2.5/3.5] rounded-xl overflow-hidden pk-surface-muted shadow-md transition group-hover:scale-[1.03] shrink-0">
+                            <div th:classappend="${uc.card().rarityIsHolographic()} ? 'holo-tilt-card' : ''"
+                                 class="w-[88%] aspect-[2.5/3.5] rounded-xl overflow-hidden pk-surface-muted shadow-md transition group-hover:scale-[1.03] shrink-0">
                                 <img th:src="${uc.card().imageUrl()}"
                                      th:alt="${uc.card().name()}"
                                      loading="lazy" decoding="async"
@@ -553,6 +555,7 @@
     </div>
 </div>
 
+<div th:replace="~{fragments/footer :: footer}"></div>
 <div th:replace="~{fragments/header :: commonScripts}"></div>
 <script defer th:src="@{/js/pages/market.js(v='20261121r')}"></script>
 </body>

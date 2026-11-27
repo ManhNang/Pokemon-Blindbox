@@ -21,10 +21,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
     <!-- Tailwind CSS biên dịch tĩnh (Thay thế Play CDN Runtime JS để triệt tiêu 100% giật chớp FOUC) -->
-    <link rel="stylesheet" th:href="@{/css/tailwind.min.css(v='20261122c')}" />
+    <link rel="stylesheet" th:href="@{/css/tailwind.min.css(v='20261127c')}" />
 
     <!-- Global Dual-Theme & Custom Component Stylesheet -->
-    <link rel="stylesheet" th:href="@{/css/app.css(v='20261122c')}" />
+    <link rel="stylesheet" th:href="@{/css/app.css(v='20261127c')}" />
 
     <!-- Google Fonts: Be Vietnam Pro & Plus Jakarta Sans -->
     <link
@@ -36,6 +36,12 @@
   <body>
     <!-- ==================== FRAGMENT 2: SINGLE-ROW STICKY GLASS NAVBAR + MOBILE DRAWER (TÁCH KHỎI HEADER) ==================== -->
     <th:block th:fragment="navbar(activeTab)">
+      <!-- Ambient Depth Glow Backdrop (nhẹ nhàng, pointer-events-none, tạo chiều sâu cho toàn trang) -->
+      <div class="pk-ambient-backdrop pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+        <div class="pk-ambient-orb pk-ambient-orb-1"></div>
+        <div class="pk-ambient-orb pk-ambient-orb-2"></div>
+      </div>
+
       <header class="pk-navbar sticky top-0 z-40 w-full max-w-full">
         <div
           class="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-2 px-3 sm:px-6 lg:px-8"
@@ -219,7 +225,7 @@
             <!-- Cụm Số dư Ví Xu kèm icon đồng Xu vàng & nút + nạp nhanh -->
             <div
               th:classappend="${activeTab == 'wallet'} ? 'ring-2 ring-rose-500/70' : ''"
-              class="flex items-center gap-1.5 rounded-full pk-surface pl-2.5 pr-1 py-1 transition"
+              class="pk-wallet-pill flex items-center gap-1.5 rounded-full pk-surface pl-2.5 pr-1 py-1 transition"
             >
               <a th:href="@{/wallet}" class="flex items-center gap-1.5">
                 <span class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 text-[9px] font-black text-slate-950 shadow-sm shrink-0">★</span>
@@ -297,6 +303,28 @@
                 </button>
               </form>
             </div>
+
+            <!-- Nút bật/tắt Âm thanh UI (Web Audio API) -->
+            <button
+              type="button"
+              id="sound-toggle-btn"
+              onclick="window.toggleBlindboxSound && window.toggleBlindboxSound()"
+              title="Bật / tắt âm thanh giao diện"
+              aria-label="Bật / tắt âm thanh giao diện"
+              aria-pressed="true"
+              class="flex h-8 w-8 items-center justify-center rounded-full pk-surface hover:opacity-80 cursor-pointer transition shrink-0"
+            >
+              <svg id="sound-icon-on" class="h-4 w-4 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+              </svg>
+              <svg id="sound-icon-off" class="hidden h-4 w-4 pk-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <line x1="23" y1="9" x2="17" y2="15"></line>
+                <line x1="17" y1="9" x2="23" y2="15"></line>
+              </svg>
+            </button>
 
             <!-- Nút chuyển đổi Cream / Dark Mode -->
             <button
@@ -573,7 +601,8 @@
         th:attr="data-user-id=${currentUserId ?: 1}, data-username=${currentUsername ?: 'satoshi'}"
         hidden
       ></div>
-      <script defer th:src="@{/js/common.js(v='20261121k')}"></script>
+      <script defer th:src="@{/js/soundEffects.js(v='20261127c')}"></script>
+      <script defer th:src="@{/js/common.js(v='20261127c')}"></script>
       <script defer th:src="@{/js/reveal-vfx.js(v='20261123a')}"></script>
     </th:block>
   </body>

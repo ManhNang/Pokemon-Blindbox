@@ -54,11 +54,18 @@ public class WebViewController {
         StoreQueryService.StorePageData data = storeQueryService.loadStorePage(boxId);
         List<SealedStoreVaultService.StoreSetCatalogItem> storeSets = sealedStoreVaultService
                 .getStoreCatalogWithDailyStock();
+        List<Long> activeSetIds = storeSets.stream()
+                .map(SealedStoreVaultService.StoreSetCatalogItem::setId)
+                .toList();
+        StoreQueryService.StoreShowcaseData showcase = storeQueryService.loadStoreShowcaseData(activeSetIds);
 
         populateCommonUserAndWallet(model, "store", userId);
         model.addAttribute("storeSets", storeSets);
         model.addAttribute("rarities", data.rarities());
         model.addAttribute("totalDropWeight", data.totalDropWeight());
+        model.addAttribute("chaseCardsBySet", showcase.chaseCardsBySet());
+        model.addAttribute("heroFeaturedCards", showcase.heroFeaturedCards());
+        model.addAttribute("recentRarePulls", showcase.recentRarePulls());
 
         return "shop/box-tray";
     }

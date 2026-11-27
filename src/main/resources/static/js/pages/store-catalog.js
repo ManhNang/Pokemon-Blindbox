@@ -109,10 +109,14 @@
                 return;
             }
 
-            // Cập nhật số dư ví trên Navbar
+            // Cập nhật số dư ví trên Navbar (Rolling Coin Counter)
             if (data.newWalletBalance != null) {
-                const navBal = document.getElementById('nav-wallet-balance');
-                if (navBal) navBal.textContent = formatVnd(data.newWalletBalance);
+                if (typeof window.updateNavbarWallet === 'function') {
+                    window.updateNavbarWallet(data.newWalletBalance);
+                } else {
+                    const navBal = document.getElementById('nav-wallet-balance');
+                    if (navBal) navBal.textContent = formatVnd(data.newWalletBalance);
+                }
             }
 
             // Cập nhật hạn mức còn lại ngay lập tức không cần reload
@@ -163,8 +167,27 @@
             }
         }
     };
+    function initDailyResetCountdown() {
+        const el = document.getElementById('store-reset-countdown');
+        if (!el) return;
+        const pad = (n) => String(n).padStart(2, '0');
+        function tick() {
+            const now = new Date();
+            const nextMidnight = new Date(now);
+            nextMidnight.setHours(24, 0, 0, 0);
+            const diffSec = Math.max(0, Math.floor((nextMidnight.getTime() - now.getTime()) / 1000));
+            const h = Math.floor(diffSec / 3600);
+            const m = Math.floor((diffSec % 3600) / 60);
+            const s = diffSec % 60;
+            el.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+        }
+        tick();
+        setInterval(tick, 1000);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('input[id^="pack-qty-"]').forEach((inp) => window.syncStoreTotal('pack', inp));
         document.querySelectorAll('input[id^="box-qty-"]').forEach((inp) => window.syncStoreTotal('box', inp));
+        initDailyResetCountdown();
     });
 })();

@@ -1255,8 +1255,17 @@
             rarityEl.value = '';
         }
 
-        renderPickerModalGrid();
+        const grid = document.getElementById('picker-cards-grid');
+        if (grid && typeof window.renderCardSkeletons === 'function') {
+            grid.innerHTML = window.renderCardSkeletons(8);
+        }
         document.getElementById('modal-pick-island-card').classList.remove('hidden');
+        requestAnimationFrame(() => {
+            renderPickerModalGrid();
+            if (grid && typeof window.bindHoloTiltEffects === 'function') {
+                window.bindHoloTiltEffects(grid);
+            }
+        });
         if (searchEl) searchEl.focus();
     };
 
